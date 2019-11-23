@@ -1,3 +1,10 @@
+#ifndef FILESYSTEM_H
+#define FILESYSTEM_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdio.h>
 #include <stdint.h>
 
@@ -23,3 +30,8 @@ void fs_ls(void);
 void fs_resize(char name[5], int new_size);
 void fs_defrag(void);
 void fs_cd(char name[5]);
+#ifdef __cplusplus
+}
+#endif
+
+#endif

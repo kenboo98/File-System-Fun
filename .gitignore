@@ -1,9 +1,6 @@
 *.o
-mapreduce
-threadpool
 cmake-build-debug/*
 .idea/
-CMakeLists.txt
 *.txt
-distwc
-wordcount
+disk0
+fs
