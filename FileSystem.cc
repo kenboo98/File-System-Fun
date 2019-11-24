@@ -2,25 +2,23 @@
 // Created by ken on 2019-11-22.
 //
 #include "FileSystem.h"
+#include "HelperFunctions.h"
 #include <fstream>
 #include <iostream>
 #include <unordered_set>
 
 using namespace std;
 
-const int FREE_SPACE_SIZE = 16;
-//INode Constants
-const int N_INODES = 126;
-const int NAME_SIZE = 5;
+
 
 // Error messages
 const char* ERROR_INCONSISTENT_SYSTEM = "Error: File system in %s is inconsistent (error code: %d)\n";
-const char* ERROR_SUPERBLOCK_FULL = "Error: Superblock in disk %s is full, cannot create %s"
-
+const char* ERROR_SUPERBLOCK_FULL = "Error: Superblock in disk %s is full, cannot create %s";
 
 fstream file_stream;
 Super_block super_block;
 string disk_name;
+int working_dir_index = 127;
 
 void fs_mount(char *new_disk_name) {
     file_stream.open(new_disk_name, fstream::in | fstream::out | fstream::app);
@@ -49,7 +47,12 @@ void fs_mount(char *new_disk_name) {
 }
 
 void fs_create(char name[5], int size){
-    //create file
+    int free_inode = free_inode_index(super_block.inode);
+    if(free_inode == -1){
+        fprintf(stderr, ERROR_SUPERBLOCK_FULL, disk_name.c_str(), name);
+        return;
+    }
+
     if(size == 0){
 
     }

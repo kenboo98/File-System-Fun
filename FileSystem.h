@@ -8,6 +8,11 @@ extern "C" {
 #include <stdio.h>
 #include <stdint.h>
 
+const int FREE_SPACE_SIZE = 16;
+//INode Constants
+const int N_INODES = 126;
+const int NAME_SIZE = 5;
+
 typedef struct {
 	char name[5];        // Name of the file or directory
 	uint8_t used_size;   // Inode state and the size of the file or directory
