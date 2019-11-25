@@ -12,12 +12,12 @@
 using namespace std;
 
 
-
 // Error messages
-const char* ERROR_INCONSISTENT_SYSTEM = "Error: File system in %s is inconsistent (error code: %d)\n";
-const char* ERROR_SUPERBLOCK_FULL = "Error: Superblock in disk %s is full, cannot create %s\n";
-const char* ERROR_FILE_DIR_EXISTS = "Error: File or directory %s already exists\n";
-const char* ERROR_BLOCK_ALLOCATION = "Error: Cannot allocate %d blocks on %s\n";
+const char *ERROR_INCONSISTENT_SYSTEM = "Error: File system in %s is inconsistent (error code: %d)\n";
+const char *ERROR_SUPERBLOCK_FULL = "Error: Superblock in disk %s is full, cannot create %s\n";
+const char *ERROR_FILE_DIR_EXISTS = "Error: File or directory %s already exists\n";
+const char *ERROR_BLOCK_ALLOCATION = "Error: Cannot allocate %d blocks on %s\n";
+const char *ERROR_FILE_DOES_NOT_EXIST = "Error: File or directory %s does not exist\n";
 
 fstream file_stream;
 Super_block super_block;
@@ -41,7 +41,7 @@ void fs_mount(char *new_disk_name) {
     // check size and start_block of directories
     for (Inode inode: super_block.inode) {
         if (inode.dir_parent >> 7 == 1) {
-            if ((inode.used_size&0x7F) != 0 || (inode.start_block&0x7F) != 0) {
+            if ((inode.used_size & 0x7F) != 0 || (inode.start_block & 0x7F) != 0) {
                 fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 5);
             }
         }
@@ -50,44 +50,65 @@ void fs_mount(char *new_disk_name) {
 
 }
 
-void fs_create(char name[5], int size){
+void fs_create(char name[5], int size) {
     cout << disk_name << endl;
     int free_inode = free_inode_index(super_block.inode);
     // Check for availability of a free node
-    if(free_inode == -1){
+    if (free_inode == -1) {
         fprintf(stderr, ERROR_SUPERBLOCK_FULL, disk_name.c_str(), name);
         return;
     }
     // check for uniqueness of the filename
     //TODO: check for .. or .
-    if(check_file_exists(working_dir_index, super_block.inode, name)){
+    if (check_file_exists(working_dir_index, super_block.inode, name)) {
         fprintf(stderr, ERROR_FILE_DIR_EXISTS, name);
         return;
     }
     // check for available contiguous blocks.
     int start_block = free_contiguous_blocks(super_block.free_block_list, size);
-    if(size != 0 && start_block == -1){
+    if (size != 0 && start_block == -1) {
         fprintf(stderr, ERROR_BLOCK_ALLOCATION, size, disk_name.c_str());
         return;
     };
 
-    if(size == 0){
+    if (size == 0) {
         strcpy(super_block.inode[free_inode].name, name);
         super_block.inode[free_inode].used_size = 0x80;
         super_block.inode[free_inode].start_block = 0;
         super_block.inode[free_inode].dir_parent = 0x80 | working_dir_index;
     } else {
         strcpy(super_block.inode[free_inode].name, name);
-        super_block.inode[free_inode].used_size = 0x80|size;
+        super_block.inode[free_inode].used_size = 0x80 | size;
         super_block.inode[free_inode].start_block = start_block;
         super_block.inode[free_inode].dir_parent = 0x7F & working_dir_index;
     }
     write_superblock(super_block, file_stream);
 }
 
+void fs_delete(char name[5]) {
+    //TODO do block cleanup
+    int node_index = name_to_index(super_block.inode, name);
+
+    if (node_index == -1) {
+        fprintf(stderr, ERROR_FILE_DOES_NOT_EXIST, name);
+        return;
+    }
+    for(int i = 0; i<5;i++){
+        super_block.inode[node_index].name[i] = 0;
+    }
+    super_block.inode[node_index].used_size = 0;
+    super_block.inode[node_index].start_block = 0;
+    super_block.inode[node_index].dir_parent = 0;
+
+    write_superblock(super_block, file_stream);
+
+}
+
+
 int main(int argc, char **argv) {
     fs_mount((char *) "disk0");
     fs_create((char *) "hi\0", 3);
     fs_create((char *) "baa\0", 0);
+    fs_delete((char *) "hi\0");
     file_stream.close();
 }

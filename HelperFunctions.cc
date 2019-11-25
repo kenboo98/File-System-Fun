@@ -68,7 +68,11 @@ bool check_file_exists(uint8_t dir_index, const Inode inodes[N_INODES], const ch
     }
     return false;
 }
-
+/**
+ * Takes the superblock and writes it to the file
+ * @param superBlock
+ * @param file_stream
+ */
 void write_superblock(const Super_block &superBlock, fstream &file_stream){
     file_stream.seekp(0);
     file_stream.write(superBlock.free_block_list, FREE_SPACE_SIZE);
@@ -81,6 +85,18 @@ void write_superblock(const Super_block &superBlock, fstream &file_stream){
         file_stream.write(&start, 1);
         file_stream.write(&parent, 1);
     }
+}
 
+void write_block(uint8_t buffer[1024], int block_number, fstream &file_stream){
 
+}
+
+int name_to_index(const Inode inodes[N_INODES], const char *name){
+    int index;
+    for (index = 0; index < N_INODES; index++) {
+        if (strcmp(name, inodes[index].name) == 0) {
+            return index;
+        }
+    }
+    return -1;
 }
