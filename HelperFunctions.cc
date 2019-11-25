@@ -62,7 +62,7 @@ int free_inode_index(const Inode inodes[N_INODES]) {
 bool check_file_exists(uint8_t dir_index, const Inode inodes[N_INODES], const char *name) {
     for (int i = 0; i < N_INODES; i++) {
         if (dir_index == (inodes[i].dir_parent & 0x7F) &&
-            strcmp(name, inodes[i].name) == 0) {
+            strncmp(name, inodes[i].name, 5) == 0) {
             return true;
         }
     }
@@ -87,17 +87,19 @@ void write_superblock(const Super_block &superBlock, fstream &file_stream){
     }
 }
 
-void write_block(uint8_t buffer[1024], int block_number, fstream &file_stream){
-
+void write_block(uint8_t buffer[BLOC_BYTE_SIZE], int block_index, fstream &file_stream){
+    file_stream.seekp(BLOC_BYTE_SIZE * (block_index));
+    file_stream.write((char *) buffer, BLOC_BYTE_SIZE);
 }
-void read_block(uint8_t buffer[1024], int block_number, fstream &file_stream){
-
+void read_block(uint8_t buffer[BLOC_BYTE_SIZE], int block_index, fstream &file_stream){
+    file_stream.seekg(BLOC_BYTE_SIZE * (block_index));
+    file_stream.read((char *) buffer, BLOC_BYTE_SIZE);
 }
 
 int name_to_index(const Inode inodes[N_INODES], const char *name){
     int index;
     for (index = 0; index < N_INODES; index++) {
-        if (strcmp(name, inodes[index].name) == 0) {
+        if (strncmp(name, inodes[index].name, 5) == 0) {
             return index;
         }
     }

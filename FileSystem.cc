@@ -18,13 +18,13 @@ const char *ERROR_SUPERBLOCK_FULL = "Error: Superblock in disk %s is full, canno
 const char *ERROR_FILE_DIR_EXISTS = "Error: File or directory %s already exists\n";
 const char *ERROR_BLOCK_ALLOCATION = "Error: Cannot allocate %d blocks on %s\n";
 const char *ERROR_FILE_DOES_NOT_EXIST = "Error: File or directory %s does not exist\n";
-const char *ERROR_BLOCK_NUM_DOES_NOT_EXIST = ""
+const char *ERROR_BLOCK_NUM_DOES_NOT_EXIST = "Error: %s does not have block %d\n";
 
 fstream file_stream;
 Super_block super_block;
 string disk_name;
 uint8_t working_dir_index = 127;
-char buffer[BLOC_BYTE_SIZE];
+uint8_t buffer[BLOC_BYTE_SIZE];
 
 void fs_mount(char *new_disk_name) {
     file_stream.open(new_disk_name, fstream::in | fstream::out | fstream::binary);
@@ -38,7 +38,7 @@ void fs_mount(char *new_disk_name) {
         super_block.inode[i].used_size = (uint8_t) buffer[0];
         super_block.inode[i].start_block = (uint8_t) buffer[1];
         super_block.inode[i].dir_parent = (uint8_t) buffer[2];
-        cout << super_block.inode[i].name << endl;
+        // cout << super_block.inode[i].name << endl;
     }
     // check size and start_block of directories
     for (Inode inode: super_block.inode) {
@@ -111,16 +111,24 @@ void fs_read(char name[5], int block_num){
         fprintf(stderr, ERROR_FILE_DOES_NOT_EXIST, name);
         return;
     }
-    if((super_block.inode[node_index].used_size&0x7F) >= block_num || block_num < 0){
-
+    if((super_block.inode[node_index].used_size&0x7F) <= block_num || block_num < 0){
+        fprintf(stderr, ERROR_BLOCK_NUM_DOES_NOT_EXIST, name, block_num);
+        return;
     }
+    read_block(buffer, super_block.inode[node_index].start_block, file_stream);
+
+
 
 }
 
 int main(int argc, char **argv) {
-    fs_mount((char *) "disk0");
-    fs_create((char *) "hi\0", 3);
-    fs_create((char *) "baa\0", 0);
-    fs_delete((char *) "hi\0");
+    //fs_mount((char *) "disk0");
+    //fs_create((char *) "hi\0", 3);
+    //fs_create((char *) "baa\0", 0);
+    //fs_delete((char *) "hi\0");
+    fs_mount((char *) "sample_tests/sample_test_3/disk1_result");
+    fs_read((char *) "file1", 0);
     file_stream.close();
+    cout << buffer << endl;
+
 }

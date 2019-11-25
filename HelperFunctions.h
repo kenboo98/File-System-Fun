@@ -13,4 +13,7 @@ int free_inode_index(const Inode inodes[N_INODES]);
 bool check_file_exists(uint8_t dir_index, const Inode inodes[N_INODES], const char* name);
 void write_superblock(const Super_block &superBlock, std::fstream &file_stream);
 int name_to_index(const Inode inodes[N_INODES], const char *name);
+void write_block(uint8_t buffer[1024], int block_index, std::fstream &file_stream);
+void read_block(uint8_t buffer[1024], int block_index, std::fstream &file_stream);
+
 #endif //A3_HELPERFUNCTIONS_H
