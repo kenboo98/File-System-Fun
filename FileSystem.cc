@@ -1,11 +1,13 @@
 //
 // Created by ken on 2019-11-22.
 //
-#include "FileSystem.h"
+
 #include "HelperFunctions.h"
+#include "FileSystem.h"
 #include <fstream>
 #include <iostream>
 #include <unordered_set>
+#include <cstring>
 
 using namespace std;
 
@@ -14,11 +16,13 @@ using namespace std;
 // Error messages
 const char* ERROR_INCONSISTENT_SYSTEM = "Error: File system in %s is inconsistent (error code: %d)\n";
 const char* ERROR_SUPERBLOCK_FULL = "Error: Superblock in disk %s is full, cannot create %s";
+const char* ERROR_FILE_DIR_EXISTS = "Error: File or directory %s already exists";
+const char* ERROR_BLOCK_ALLOCATION = "Error: Cannot allocate %d blocks on %s";
 
 fstream file_stream;
 Super_block super_block;
 string disk_name;
-int working_dir_index = 127;
+uint8_t working_dir_index = 127;
 
 void fs_mount(char *new_disk_name) {
     file_stream.open(new_disk_name, fstream::in | fstream::out | fstream::app);
@@ -48,13 +52,27 @@ void fs_mount(char *new_disk_name) {
 
 void fs_create(char name[5], int size){
     int free_inode = free_inode_index(super_block.inode);
+    // Check for availability of a free node
     if(free_inode == -1){
         fprintf(stderr, ERROR_SUPERBLOCK_FULL, disk_name.c_str(), name);
         return;
     }
+    // check for uniqueness of the filename
+    //TODO: check for .. or .
+    if(check_file_exists(working_dir_index, super_block.inode, name)){
+        fprintf(stderr, ERROR_FILE_DIR_EXISTS, name);
+        return;
+    }
+    // check for available contiguous blocks.
+    if(size != 0 && free_contiguous_blocks(super_block.free_block_list, size) == -1){
+        fprintf(stderr, ERROR_BLOCK_ALLOCATION, size, disk_name.c_str());
+    };
 
     if(size == 0){
-
+        strcpy(super_block.inode[free_inode].name, name);
+        super_block.inode[free_inode].used_size = 0x80;
+        super_block.inode[free_inode].start_block = 0;
+        super_block.inode[free_inode].dir_parent = 0x80 | working_dir_index;
     }
 }
 
