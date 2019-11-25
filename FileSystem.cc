@@ -15,9 +15,9 @@ using namespace std;
 
 // Error messages
 const char* ERROR_INCONSISTENT_SYSTEM = "Error: File system in %s is inconsistent (error code: %d)\n";
-const char* ERROR_SUPERBLOCK_FULL = "Error: Superblock in disk %s is full, cannot create %s";
-const char* ERROR_FILE_DIR_EXISTS = "Error: File or directory %s already exists";
-const char* ERROR_BLOCK_ALLOCATION = "Error: Cannot allocate %d blocks on %s";
+const char* ERROR_SUPERBLOCK_FULL = "Error: Superblock in disk %s is full, cannot create %s\n";
+const char* ERROR_FILE_DIR_EXISTS = "Error: File or directory %s already exists\n";
+const char* ERROR_BLOCK_ALLOCATION = "Error: Cannot allocate %d blocks on %s\n";
 
 fstream file_stream;
 Super_block super_block;
@@ -25,7 +25,7 @@ string disk_name;
 uint8_t working_dir_index = 127;
 
 void fs_mount(char *new_disk_name) {
-    file_stream.open(new_disk_name, fstream::in | fstream::out | fstream::app);
+    file_stream.open(new_disk_name, fstream::in | fstream::out | fstream::binary);
     file_stream.read(super_block.free_block_list, FREE_SPACE_SIZE);
 
     //Initialize INodes
@@ -47,10 +47,11 @@ void fs_mount(char *new_disk_name) {
         }
     }
     disk_name = string(new_disk_name);
-    file_stream.close();
+
 }
 
 void fs_create(char name[5], int size){
+    cout << disk_name << endl;
     int free_inode = free_inode_index(super_block.inode);
     // Check for availability of a free node
     if(free_inode == -1){
@@ -66,6 +67,7 @@ void fs_create(char name[5], int size){
     // check for available contiguous blocks.
     if(size != 0 && free_contiguous_blocks(super_block.free_block_list, size) == -1){
         fprintf(stderr, ERROR_BLOCK_ALLOCATION, size, disk_name.c_str());
+        return;
     };
 
     if(size == 0){
@@ -74,8 +76,11 @@ void fs_create(char name[5], int size){
         super_block.inode[free_inode].start_block = 0;
         super_block.inode[free_inode].dir_parent = 0x80 | working_dir_index;
     }
+    write_superblock(super_block, file_stream);
 }
 
 int main(int argc, char **argv) {
-    fs_mount((char *) "sample_tests/sample_test_4/clean_disk_result");
+    fs_mount((char *) "disk0");
+    fs_create((char *) "poop\0", 0);
+    file_stream.close();
 }
