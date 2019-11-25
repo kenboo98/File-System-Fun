@@ -24,7 +24,7 @@ fstream file_stream;
 Super_block super_block;
 string disk_name;
 uint8_t working_dir_index = 127;
-uint8_t buffer[BLOC_BYTE_SIZE];
+uint8_t *buffer = new uint8_t[BLOC_BYTE_SIZE];
 
 void fs_mount(char *new_disk_name) {
     file_stream.open(new_disk_name, fstream::in | fstream::out | fstream::binary);
@@ -116,8 +116,27 @@ void fs_read(char name[5], int block_num){
         return;
     }
     read_block(buffer, super_block.inode[node_index].start_block, file_stream);
+}
+
+void fs_write(char name[5], int block_num){
+    int node_index = name_to_index(super_block.inode, name);
+    if (node_index == -1){
+        fprintf(stderr, ERROR_FILE_DOES_NOT_EXIST, name);
+        return;
+    }
+    if((super_block.inode[node_index].used_size&0x7F) <= block_num || block_num < 0){
+        fprintf(stderr, ERROR_BLOCK_NUM_DOES_NOT_EXIST, name, block_num);
+        return;
+    }
+    write_block(buffer, super_block.inode[node_index].start_block, file_stream);
+}
 
 
+void fs_buff(uint8_t buff[1024]){
+    for(int i = 0; i < BLOC_BYTE_SIZE; i++){
+        buffer[i] = 0;
+    }
+    strncpy(reinterpret_cast<char *>(buffer), reinterpret_cast<const char *>(buff), 1024);
 
 }
 
@@ -126,8 +145,11 @@ int main(int argc, char **argv) {
     //fs_create((char *) "hi\0", 3);
     //fs_create((char *) "baa\0", 0);
     //fs_delete((char *) "hi\0");
-    fs_mount((char *) "sample_tests/sample_test_3/disk1_result");
-    fs_read((char *) "file1", 0);
+    fs_mount((char *) "disk0");
+    fs_create((char *) "test1", 3);
+    fs_buff((uint8_t *) "your battery is running low.\0");
+    fs_write((char *) "test1", 0);
+    fs_write((char *) "test1", 1);
     file_stream.close();
     cout << buffer << endl;
 
