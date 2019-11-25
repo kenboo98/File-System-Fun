@@ -65,7 +65,8 @@ void fs_create(char name[5], int size){
         return;
     }
     // check for available contiguous blocks.
-    if(size != 0 && free_contiguous_blocks(super_block.free_block_list, size) == -1){
+    int start_block = free_contiguous_blocks(super_block.free_block_list, size);
+    if(size != 0 && start_block == -1){
         fprintf(stderr, ERROR_BLOCK_ALLOCATION, size, disk_name.c_str());
         return;
     };
@@ -75,12 +76,18 @@ void fs_create(char name[5], int size){
         super_block.inode[free_inode].used_size = 0x80;
         super_block.inode[free_inode].start_block = 0;
         super_block.inode[free_inode].dir_parent = 0x80 | working_dir_index;
+    } else {
+        strcpy(super_block.inode[free_inode].name, name);
+        super_block.inode[free_inode].used_size = 0x80|size;
+        super_block.inode[free_inode].start_block = start_block;
+        super_block.inode[free_inode].dir_parent = 0x7F & working_dir_index;
     }
     write_superblock(super_block, file_stream);
 }
 
 int main(int argc, char **argv) {
     fs_mount((char *) "disk0");
-    fs_create((char *) "poop\0", 0);
+    fs_create((char *) "hi\0", 3);
+    fs_create((char *) "baa\0", 0);
     file_stream.close();
 }
