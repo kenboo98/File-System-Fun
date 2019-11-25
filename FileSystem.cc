@@ -18,11 +18,13 @@ const char *ERROR_SUPERBLOCK_FULL = "Error: Superblock in disk %s is full, canno
 const char *ERROR_FILE_DIR_EXISTS = "Error: File or directory %s already exists\n";
 const char *ERROR_BLOCK_ALLOCATION = "Error: Cannot allocate %d blocks on %s\n";
 const char *ERROR_FILE_DOES_NOT_EXIST = "Error: File or directory %s does not exist\n";
+const char *ERROR_BLOCK_NUM_DOES_NOT_EXIST = ""
 
 fstream file_stream;
 Super_block super_block;
 string disk_name;
 uint8_t working_dir_index = 127;
+char buffer[BLOC_BYTE_SIZE];
 
 void fs_mount(char *new_disk_name) {
     file_stream.open(new_disk_name, fstream::in | fstream::out | fstream::binary);
@@ -86,7 +88,7 @@ void fs_create(char name[5], int size) {
 }
 
 void fs_delete(char name[5]) {
-    //TODO do block cleanup
+    //TODO do block cleanup and recursively delete
     int node_index = name_to_index(super_block.inode, name);
 
     if (node_index == -1) {
@@ -103,7 +105,17 @@ void fs_delete(char name[5]) {
     write_superblock(super_block, file_stream);
 
 }
+void fs_read(char name[5], int block_num){
+    int node_index = name_to_index(super_block.inode, name);
+    if (node_index == -1) {
+        fprintf(stderr, ERROR_FILE_DOES_NOT_EXIST, name);
+        return;
+    }
+    if((super_block.inode[node_index].used_size&0x7F) >= block_num || block_num < 0){
 
+    }
+
+}
 
 int main(int argc, char **argv) {
     fs_mount((char *) "disk0");

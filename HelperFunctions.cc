@@ -90,6 +90,9 @@ void write_superblock(const Super_block &superBlock, fstream &file_stream){
 void write_block(uint8_t buffer[1024], int block_number, fstream &file_stream){
 
 }
+void read_block(uint8_t buffer[1024], int block_number, fstream &file_stream){
+
+}
 
 int name_to_index(const Inode inodes[N_INODES], const char *name){
     int index;
