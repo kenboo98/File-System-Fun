@@ -86,16 +86,32 @@ void write_superblock(const Super_block &superBlock, fstream &file_stream){
         file_stream.write(&parent, 1);
     }
 }
-
+/**
+ *
+ * @param buffer
+ * @param block_index
+ * @param file_stream
+ */
 void write_block(uint8_t buffer[BLOC_BYTE_SIZE], int block_index, fstream &file_stream){
     file_stream.seekp(BLOC_BYTE_SIZE * (block_index));
     file_stream.write((char *) buffer, BLOC_BYTE_SIZE);
 }
+/**
+ *
+ * @param buffer
+ * @param block_index
+ * @param file_stream
+ */
 void read_block(uint8_t buffer[BLOC_BYTE_SIZE], int block_index, fstream &file_stream){
     file_stream.seekg(BLOC_BYTE_SIZE * (block_index));
     file_stream.read((char *) buffer, BLOC_BYTE_SIZE);
 }
-
+/**
+ *
+ * @param inodes
+ * @param name
+ * @return
+ */
 int name_to_index(const Inode inodes[N_INODES], const char *name){
     int index;
     for (index = 0; index < N_INODES; index++) {
@@ -104,4 +120,14 @@ int name_to_index(const Inode inodes[N_INODES], const char *name){
         }
     }
     return -1;
+}
+
+int count_n_files(const Inode inodes[N_INODES], int dir_index){
+    int count = 0;
+    for (int i = 0; i < N_INODES; i++) {
+        if (dir_index == (inodes[i].dir_parent & 0x7F)) {
+            count++;
+        }
+    }
+    return count;
 }

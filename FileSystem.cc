@@ -137,20 +137,40 @@ void fs_buff(uint8_t buff[1024]){
         buffer[i] = 0;
     }
     strncpy(reinterpret_cast<char *>(buffer), reinterpret_cast<const char *>(buff), 1024);
+}
 
+void fs_ls(){
+    for(int i = 0; i<N_INODES; i++){
+        // if file is in use
+        Inode *inode = &super_block.inode[i];
+        if(inode->used_size&0x80 and (inode->dir_parent&0x7F) == working_dir_index){
+            // if directory
+            string name(inode->name, 5);
+            if (inode->dir_parent&0x80) {
+                printf("%-5s %3d\n", name.c_str(), count_n_files(super_block.inode, i));
+            } else {
+                printf("%-5s %3d KB\n", name.c_str(), inode->used_size&0x7F);
+            }
+        }
+
+    }
 }
 
 int main(int argc, char **argv) {
-    //fs_mount((char *) "disk0");
-    //fs_create((char *) "hi\0", 3);
-    //fs_create((char *) "baa\0", 0);
-    //fs_delete((char *) "hi\0");
     fs_mount((char *) "disk0");
-    fs_create((char *) "test1", 3);
-    fs_buff((uint8_t *) "your battery is running low.\0");
-    fs_write((char *) "test1", 0);
-    fs_write((char *) "test1", 1);
+    fs_create((char *) "file\0", 3);
+    fs_create((char *) "file1", 1);
+    //fs_delete((char *) "hi\0");
+    //fs_mount((char *) "sample_tests/sample_test_4/clean_disk_result");
+    //fs_create((char *) "test1", 3);
+    fs_buff((uint8_t *) "Hello My name is.\0");
+    fs_write((char *) "file1", 0);
+    cout << buffer << endl;
+    fs_buff((uint8_t *) "GROG GROG GROG\0");
+    fs_write((char *) "file\0", 2);
+    fs_ls();
     file_stream.close();
+
     cout << buffer << endl;
 
 }
