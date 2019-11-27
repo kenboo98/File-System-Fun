@@ -142,6 +142,14 @@ void fs_buff(uint8_t buff[1024]){
 }
 
 void fs_ls(){
+    if(working_dir_index == 127){
+        printf(". %3d\n", count_n_files(super_block.inode, 127));
+        printf(".. %3d\n", count_n_files(super_block.inode, 127));
+    } else {
+        printf(". %3d\n", count_n_files(super_block.inode, working_dir_index));
+        printf(".. %3d\n", count_n_files(super_block.inode,
+                                         super_block.inode[working_dir_index].dir_parent&0x7F));
+    }
     for(int i = 0; i<N_INODES; i++){
         // if file is in use
         Inode *inode = &super_block.inode[i];
