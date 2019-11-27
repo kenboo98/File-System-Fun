@@ -134,7 +134,12 @@ int name_to_index(const Inode inodes[N_INODES], const char *name) {
     }
     return -1;
 }
-
+/**
+ *  Counts the number of files in a directory index
+ * @param inodes
+ * @param dir_index
+ * @return
+ */
 int count_n_files(const Inode inodes[N_INODES], int dir_index) {
     int count = 0;
     for (int i = 0; i < N_INODES; i++) {
@@ -143,4 +148,13 @@ int count_n_files(const Inode inodes[N_INODES], int dir_index) {
         }
     }
     return count;
+}
+/**
+ * Zero out a block
+ * @param block_index
+ * @param file_stream
+ */
+void zero_out_block(int block_index, fstream &file_stream){
+    uint8_t zeroes[1024] = {};
+    write_block(zeroes, block_index, file_stream);
 }

@@ -17,7 +17,8 @@ const char *ERROR_INCONSISTENT_SYSTEM = "Error: File system in %s is inconsisten
 const char *ERROR_SUPERBLOCK_FULL = "Error: Superblock in disk %s is full, cannot create %s\n";
 const char *ERROR_FILE_DIR_EXISTS = "Error: File or directory %s already exists\n";
 const char *ERROR_BLOCK_ALLOCATION = "Error: Cannot allocate %d blocks on %s\n";
-const char *ERROR_FILE_DOES_NOT_EXIST = "Error: File or directory %s does not exist\n";
+const char *ERROR_FILE_DOES_NOT_EXIST = "Error: File %s does not exist\n";
+const char *ERROR_FILE_DIR_DOES_NOT_EXIST = "Error: File or directory %s does not exist\n";
 const char *ERROR_BLOCK_NUM_DOES_NOT_EXIST = "Error: %s does not have block %d\n";
 const char *ERROR_DIRECTORY_DOES_NOT_EXIST = "Error Directory %s does not exist\n";
 
@@ -94,7 +95,7 @@ void fs_delete(char name[5]) {
     int node_index = name_to_index(super_block.inode, name);
 
     if (node_index == -1) {
-        fprintf(stderr, ERROR_FILE_DOES_NOT_EXIST, name);
+        fprintf(stderr, ERROR_FILE_DIR_DOES_NOT_EXIST, name);
         return;
     }
     for (int i = 0; i < 5; i++) {
@@ -111,7 +112,7 @@ void fs_delete(char name[5]) {
 void fs_read(char name[5], int block_num) {
     int node_index = name_to_index(super_block.inode, name);
     if (node_index == -1) {
-        fprintf(stderr, ERROR_FILE_DOES_NOT_EXIST, name);
+        fprintf(stderr, ERROR_FILE_DIR_DOES_NOT_EXIST, name);
         return;
     }
     if ((super_block.inode[node_index].used_size & 0x7F) <= block_num || block_num < 0) {
@@ -167,6 +168,22 @@ void fs_ls() {
     }
 }
 
+void fs_resize(char name[5], int new_size) {
+    int node_index = name_to_index(super_block.inode, name);
+    if(node_index == -1){
+        fprintf(stderr, ERROR_FILE_DOES_NOT_EXIST, name);
+    }
+    int old_size = super_block.inode[node_index].used_size & 0x7F;
+    if (old_size > new_size) {
+        for (int i = 0; i < old_size; i++) {
+            zero_out_block(super_block.inode[node_index].start_block + old_size + i, file_stream);
+        }
+    }
+    if (old_size < new_size) {
+
+    }
+}
+
 void fs_cd(char name[5]) {
     if (strncmp(name, ".", 5) == 0) {
         return;
@@ -200,6 +217,8 @@ int main(int argc, char **argv) {
     //fs_delete((char *) "hi\0");
     //fs_mount((char *) "sample_tests/sample_test_4/clean_disk_result");
     //fs_create((char *) "test1", 3);
+    // Test writing buffer and ls
+    /*
     fs_buff((uint8_t *) "Hello My name is.\0");
     fs_write((char *) "file1", 0);
     fs_buff((uint8_t *) "GROG GROG GROG\0");
@@ -214,7 +233,12 @@ int main(int argc, char **argv) {
     fs_ls();
     fs_cd((char *) "..");
     fs_ls();
-
+    */
+    fs_buff((uint8_t *) "Hello My name is.\0");
+    fs_write((char *) "file\0", 0);
+    fs_write((char *) "file\0", 1);
+    fs_write((char *) "file\0", 2);
+    fs_resize((char *) "file\0", 1);
     file_stream.close();
 
 

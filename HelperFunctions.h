@@ -16,6 +16,7 @@ int name_to_index(const Inode inodes[N_INODES], const char *name);
 void write_block(uint8_t buffer[1024], int block_index, std::fstream &file_stream);
 void read_block(uint8_t buffer[1024], int block_index, std::fstream &file_stream);
 int count_n_files(const Inode inodes[N_INODES], int dir_index);
+void zero_out_block(int block_index, std::fstream &file_stream);
 void set_used_blocks(char free_blocks[16], int start_index, int block_size);
 
 #endif //A3_HELPERFUNCTIONS_H
