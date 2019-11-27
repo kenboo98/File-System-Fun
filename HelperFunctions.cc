@@ -22,8 +22,8 @@ int free_contiguous_blocks(const char free_blocks[16], int block_size) {
             if (((free_blocks[byte_idx] >> bit_idx) & 1)) {
                 start_index = -1;
                 block_count = block_size;
-            }else{
-                if(start_index == -1){
+            } else {
+                if (start_index == -1) {
                     start_index = index;
                 }
                 block_count -= 1;
@@ -35,6 +35,14 @@ int free_contiguous_blocks(const char free_blocks[16], int block_size) {
         }
     }
     return -1;
+}
+
+void set_used_blocks(char free_blocks[16], int start_index, int block_size) {
+    for (int i = 0; i < block_size; i++) {
+        int byte_index = start_index / 8;
+        int bit_index = start_index % 8;
+        free_blocks[byte_index] = free_blocks[byte_index] | 0x80 >> bit_index;
+    }
 }
 
 /**
@@ -52,6 +60,7 @@ int free_inode_index(const Inode inodes[N_INODES]) {
     return -1;
 
 }
+
 /**
  * Check if the file exists in a particular directory
  * @param dir_index
@@ -68,15 +77,16 @@ bool check_file_exists(uint8_t dir_index, const Inode inodes[N_INODES], const ch
     }
     return false;
 }
+
 /**
  * Takes the superblock and writes it to the file
  * @param superBlock
  * @param file_stream
  */
-void write_superblock(const Super_block &superBlock, fstream &file_stream){
+void write_superblock(const Super_block &superBlock, fstream &file_stream) {
     file_stream.seekp(0);
     file_stream.write(superBlock.free_block_list, FREE_SPACE_SIZE);
-    for(Inode node: superBlock.inode){
+    for (Inode node: superBlock.inode) {
         file_stream.write(node.name, 5);
         char used = node.used_size;
         char start = node.start_block;
@@ -86,33 +96,36 @@ void write_superblock(const Super_block &superBlock, fstream &file_stream){
         file_stream.write(&parent, 1);
     }
 }
+
 /**
  *
  * @param buffer
  * @param block_index
  * @param file_stream
  */
-void write_block(uint8_t buffer[BLOC_BYTE_SIZE], int block_index, fstream &file_stream){
+void write_block(uint8_t buffer[BLOC_BYTE_SIZE], int block_index, fstream &file_stream) {
     file_stream.seekp(BLOC_BYTE_SIZE * (block_index));
     file_stream.write((char *) buffer, BLOC_BYTE_SIZE);
 }
+
 /**
  *
  * @param buffer
  * @param block_index
  * @param file_stream
  */
-void read_block(uint8_t buffer[BLOC_BYTE_SIZE], int block_index, fstream &file_stream){
+void read_block(uint8_t buffer[BLOC_BYTE_SIZE], int block_index, fstream &file_stream) {
     file_stream.seekg(BLOC_BYTE_SIZE * (block_index));
     file_stream.read((char *) buffer, BLOC_BYTE_SIZE);
 }
+
 /**
  *
  * @param inodes
  * @param name
  * @return
  */
-int name_to_index(const Inode inodes[N_INODES], const char *name){
+int name_to_index(const Inode inodes[N_INODES], const char *name) {
     int index;
     for (index = 0; index < N_INODES; index++) {
         if (strncmp(name, inodes[index].name, 5) == 0) {
@@ -122,7 +135,7 @@ int name_to_index(const Inode inodes[N_INODES], const char *name){
     return -1;
 }
 
-int count_n_files(const Inode inodes[N_INODES], int dir_index){
+int count_n_files(const Inode inodes[N_INODES], int dir_index) {
     int count = 0;
     for (int i = 0; i < N_INODES; i++) {
         if (dir_index == (inodes[i].dir_parent & 0x7F)) {

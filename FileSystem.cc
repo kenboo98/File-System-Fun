@@ -83,6 +83,7 @@ void fs_create(char name[5], int size) {
         super_block.inode[free_inode].used_size = 0x80 | size;
         super_block.inode[free_inode].start_block = start_block;
         super_block.inode[free_inode].dir_parent = 0x7F & working_dir_index;
+        set_used_blocks(super_block.free_block_list, start_block, size);
     }
     write_superblock(super_block, file_stream);
 }
@@ -120,6 +121,7 @@ void fs_read(char name[5], int block_num){
 
 void fs_write(char name[5], int block_num){
     int node_index = name_to_index(super_block.inode, name);
+    cout << "NODE " << node_index << endl;
     if (node_index == -1){
         fprintf(stderr, ERROR_FILE_DOES_NOT_EXIST, name);
         return;
@@ -160,6 +162,7 @@ int main(int argc, char **argv) {
     fs_mount((char *) "disk0");
     fs_create((char *) "file\0", 3);
     fs_create((char *) "file1", 1);
+    fs_create((char *) "file2", 5);
     //fs_delete((char *) "hi\0");
     //fs_mount((char *) "sample_tests/sample_test_4/clean_disk_result");
     //fs_create((char *) "test1", 3);
@@ -168,6 +171,8 @@ int main(int argc, char **argv) {
     cout << buffer << endl;
     fs_buff((uint8_t *) "GROG GROG GROG\0");
     fs_write((char *) "file\0", 2);
+    fs_buff((uint8_t *) "PLEBS\0");
+    fs_write((char *) "file2\0", 3);
     fs_ls();
     file_stream.close();
 
