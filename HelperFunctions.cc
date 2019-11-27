@@ -53,7 +53,7 @@ void set_used_blocks(char free_blocks[16], int start_index, int block_size) {
 int free_inode_index(const Inode inodes[N_INODES]) {
 
     for (int index = 0; index < N_INODES; index++) {
-        if (!(inodes[index].used_size & 0x7F)) {
+        if (!(inodes[index].used_size & 0x80)) {
             return index;
         }
     }

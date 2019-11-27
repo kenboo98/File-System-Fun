@@ -19,6 +19,7 @@ const char *ERROR_FILE_DIR_EXISTS = "Error: File or directory %s already exists\
 const char *ERROR_BLOCK_ALLOCATION = "Error: Cannot allocate %d blocks on %s\n";
 const char *ERROR_FILE_DOES_NOT_EXIST = "Error: File or directory %s does not exist\n";
 const char *ERROR_BLOCK_NUM_DOES_NOT_EXIST = "Error: %s does not have block %d\n";
+const char *ERROR_DIRECTORY_DOES_NOT_EXIST = "Error Directory %s does not exist\n";
 
 fstream file_stream;
 Super_block super_block;
@@ -53,7 +54,7 @@ void fs_mount(char *new_disk_name) {
 }
 
 void fs_create(char name[5], int size) {
-    cout << disk_name << endl;
+    //cout << disk_name << endl;
     int free_inode = free_inode_index(super_block.inode);
     // Check for availability of a free node
     if (free_inode == -1) {
@@ -96,7 +97,7 @@ void fs_delete(char name[5]) {
         fprintf(stderr, ERROR_FILE_DOES_NOT_EXIST, name);
         return;
     }
-    for(int i = 0; i<5;i++){
+    for (int i = 0; i < 5; i++) {
         super_block.inode[node_index].name[i] = 0;
     }
     super_block.inode[node_index].used_size = 0;
@@ -106,27 +107,27 @@ void fs_delete(char name[5]) {
     write_superblock(super_block, file_stream);
 
 }
-void fs_read(char name[5], int block_num){
+
+void fs_read(char name[5], int block_num) {
     int node_index = name_to_index(super_block.inode, name);
     if (node_index == -1) {
         fprintf(stderr, ERROR_FILE_DOES_NOT_EXIST, name);
         return;
     }
-    if((super_block.inode[node_index].used_size&0x7F) <= block_num || block_num < 0){
+    if ((super_block.inode[node_index].used_size & 0x7F) <= block_num || block_num < 0) {
         fprintf(stderr, ERROR_BLOCK_NUM_DOES_NOT_EXIST, name, block_num);
         return;
     }
     read_block(buffer, super_block.inode[node_index].start_block, file_stream);
 }
 
-void fs_write(char name[5], int block_num){
+void fs_write(char name[5], int block_num) {
     int node_index = name_to_index(super_block.inode, name);
-    cout << "NODE " << node_index << endl;
-    if (node_index == -1){
+    if (node_index == -1) {
         fprintf(stderr, ERROR_FILE_DOES_NOT_EXIST, name);
         return;
     }
-    if((super_block.inode[node_index].used_size&0x7F) <= block_num || block_num < 0){
+    if ((super_block.inode[node_index].used_size & 0x7F) <= block_num || block_num < 0) {
         fprintf(stderr, ERROR_BLOCK_NUM_DOES_NOT_EXIST, name, block_num);
         return;
     }
@@ -134,36 +135,60 @@ void fs_write(char name[5], int block_num){
 }
 
 
-void fs_buff(uint8_t buff[1024]){
-    for(int i = 0; i < BLOC_BYTE_SIZE; i++){
+void fs_buff(uint8_t buff[1024]) {
+    for (int i = 0; i < BLOC_BYTE_SIZE; i++) {
         buffer[i] = 0;
     }
     strncpy(reinterpret_cast<char *>(buffer), reinterpret_cast<const char *>(buff), 1024);
 }
 
-void fs_ls(){
-    if(working_dir_index == 127){
-        printf(". %3d\n", count_n_files(super_block.inode, 127));
-        printf(".. %3d\n", count_n_files(super_block.inode, 127));
+void fs_ls() {
+    if (working_dir_index == 127) {
+        printf("%-5s %3d\n", ".", count_n_files(super_block.inode, 127));
+        printf("%-5s %3d\n", "..", count_n_files(super_block.inode, 127));
     } else {
-        printf(". %3d\n", count_n_files(super_block.inode, working_dir_index));
-        printf(".. %3d\n", count_n_files(super_block.inode,
-                                         super_block.inode[working_dir_index].dir_parent&0x7F));
+        printf("%-5s %3d\n", ".", count_n_files(super_block.inode, working_dir_index));
+        printf("%-5s %3d\n", "..", count_n_files(super_block.inode,
+                                                 super_block.inode[working_dir_index].dir_parent & 0x7F));
     }
-    for(int i = 0; i<N_INODES; i++){
+    for (int i = 0; i < N_INODES; i++) {
         // if file is in use
         Inode *inode = &super_block.inode[i];
-        if(inode->used_size&0x80 and (inode->dir_parent&0x7F) == working_dir_index){
+        if (inode->used_size & 0x80 and (inode->dir_parent & 0x7F) == working_dir_index) {
             // if directory
             string name(inode->name, 5);
-            if (inode->dir_parent&0x80) {
+            if (inode->dir_parent & 0x80) {
                 printf("%-5s %3d\n", name.c_str(), count_n_files(super_block.inode, i));
             } else {
-                printf("%-5s %3d KB\n", name.c_str(), inode->used_size&0x7F);
+                printf("%-5s %3d KB\n", name.c_str(), inode->used_size & 0x7F);
             }
         }
 
     }
+}
+
+void fs_cd(char name[5]) {
+    if (strncmp(name, ".", 5) == 0) {
+        return;
+    }
+    if (strncmp(name, "..", 5) == 0) {
+        if (working_dir_index == 127) {
+            printf(ERROR_DIRECTORY_DOES_NOT_EXIST, name);
+            return;
+        } else {
+            working_dir_index = super_block.inode[working_dir_index].dir_parent & 0x7F;
+            return;
+        }
+    }
+    int node_index = name_to_index(super_block.inode, name);
+    if (super_block.inode[node_index].dir_parent & 0x80) {
+        working_dir_index = node_index;
+        return;
+    } else {
+        printf(ERROR_DIRECTORY_DOES_NOT_EXIST, name);
+    }
+
+
 }
 
 int main(int argc, char **argv) {
@@ -171,19 +196,26 @@ int main(int argc, char **argv) {
     fs_create((char *) "file\0", 3);
     fs_create((char *) "file1", 1);
     fs_create((char *) "file2", 5);
+    fs_create((char *) "dir1\0", 0);
     //fs_delete((char *) "hi\0");
     //fs_mount((char *) "sample_tests/sample_test_4/clean_disk_result");
     //fs_create((char *) "test1", 3);
     fs_buff((uint8_t *) "Hello My name is.\0");
     fs_write((char *) "file1", 0);
-    cout << buffer << endl;
     fs_buff((uint8_t *) "GROG GROG GROG\0");
     fs_write((char *) "file\0", 2);
     fs_buff((uint8_t *) "PLEBS\0");
     fs_write((char *) "file2\0", 3);
     fs_ls();
+    fs_cd((char *) "dir1\0");
+    fs_ls();
+    fs_create((char *) "poop\0", 1);
+    fs_write((char *) "poop\0", 0);
+    fs_ls();
+    fs_cd((char *) "..");
+    fs_ls();
+
     file_stream.close();
 
-    cout << buffer << endl;
 
 }
