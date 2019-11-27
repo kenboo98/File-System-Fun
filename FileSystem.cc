@@ -44,9 +44,25 @@ void fs_mount(char *new_disk_name) {
     }
     // check size and start_block of directories
     for (Inode inode: super_block.inode) {
+
+        // Consistency check 5
         if (inode.dir_parent >> 7 == 1) {
             if ((inode.used_size & 0x7F) != 0 || (inode.start_block & 0x7F) != 0) {
                 fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 5);
+            }
+        } else if (inode.used_size & 0x80) {
+            // Consistency check 4
+            if (inode.start_block < 1 || inode.start_block > 127) {
+                fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 4);
+            }
+        }
+        // Consistency Check 6
+        if ((inode.dir_parent & 0x7F) == 126) {
+            fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 6);
+        } else if ((inode.dir_parent & 0x7F) > 0 && (inode.dir_parent & 0x7F) < 125) {
+            int parent = inode.dir_parent & 0x7F;
+            if (!(super_block.inode[parent].used_size & 80) || !(super_block.inode[parent].dir_parent & 80)) {
+                fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 6);
             }
         }
     }
@@ -170,7 +186,7 @@ void fs_ls() {
 
 void fs_resize(char name[5], int new_size) {
     int node_index = name_to_index(super_block.inode, name);
-    if(node_index == -1){
+    if (node_index == -1) {
         fprintf(stderr, ERROR_FILE_DOES_NOT_EXIST, name);
     }
     int old_size = super_block.inode[node_index].used_size & 0x7F;
@@ -179,6 +195,7 @@ void fs_resize(char name[5], int new_size) {
             zero_out_block(super_block.inode[node_index].start_block + old_size + i, file_stream);
         }
     }
+    // TODO: increase size
     if (old_size < new_size) {
 
     }
