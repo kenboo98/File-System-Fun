@@ -106,13 +106,25 @@ void fs_create(char name[5], int size) {
     write_superblock(super_block, file_stream);
 }
 
-void fs_delete(char name[5]) {
-    //TODO do block cleanup and recursively delete
+
+void fs_delete_recurse(char name[5], int current_dir) {
     int node_index = name_to_index(super_block.inode, name);
 
-    if (node_index == -1) {
+    if (node_index == -1 || (super_block.inode[node_index].dir_parent & 0x7F) != current_dir) {
         fprintf(stderr, ERROR_FILE_DIR_DOES_NOT_EXIST, name);
         return;
+    }
+
+    if (super_block.inode[node_index].dir_parent & 0x80) {
+        for (int i = 0; i < N_INODES; i++) {
+            if ((super_block.inode[i].dir_parent & 0x7F) == node_index) {
+                fs_delete_recurse(super_block.inode[i].name, node_index);
+            }
+        }
+    } else {
+        for (int i = 0; i < (super_block.inode[node_index].used_size & 0x7F); i++) {
+            zero_out_block(super_block.inode[node_index].start_block + i, file_stream);
+        }
     }
     for (int i = 0; i < 5; i++) {
         super_block.inode[node_index].name[i] = 0;
@@ -124,6 +136,11 @@ void fs_delete(char name[5]) {
     write_superblock(super_block, file_stream);
 
 }
+
+void fs_delete(char name[5]) {
+    fs_delete_recurse(name, working_dir_index);
+}
+
 
 void fs_read(char name[5], int block_num) {
     int node_index = name_to_index(super_block.inode, name);
@@ -227,10 +244,12 @@ void fs_cd(char name[5]) {
 
 int main(int argc, char **argv) {
     fs_mount((char *) "disk0");
-    fs_create((char *) "file\0", 3);
-    fs_create((char *) "file1", 1);
+
     fs_create((char *) "file2", 5);
     fs_create((char *) "dir1\0", 0);
+    fs_cd((char *) "dir1\0");
+    fs_create((char *) "file\0", 3);
+    fs_create((char *) "file1", 1);
     //fs_delete((char *) "hi\0");
     //fs_mount((char *) "sample_tests/sample_test_4/clean_disk_result");
     //fs_create((char *) "test1", 3);
@@ -256,6 +275,8 @@ int main(int argc, char **argv) {
     fs_write((char *) "file\0", 1);
     fs_write((char *) "file\0", 2);
     fs_resize((char *) "file\0", 1);
+    fs_cd((char *) "..");
+    fs_delete((char *) "dir1\0");
     file_stream.close();
 
 
