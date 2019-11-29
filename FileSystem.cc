@@ -21,6 +21,7 @@ const char *ERROR_FILE_DOES_NOT_EXIST = "Error: File %s does not exist\n";
 const char *ERROR_FILE_DIR_DOES_NOT_EXIST = "Error: File or directory %s does not exist\n";
 const char *ERROR_BLOCK_NUM_DOES_NOT_EXIST = "Error: %s does not have block %d\n";
 const char *ERROR_DIRECTORY_DOES_NOT_EXIST = "Error Directory %s does not exist\n";
+const char *ERROR_CANNOT_EXPAND = "Error: File %s cannot expand to size %d\n";
 
 fstream file_stream;
 Super_block super_block;
@@ -49,13 +50,13 @@ void fs_mount(char *new_disk_name) {
     // check size and start_block of directories
     for (Inode inode: new_block.inode) {
         // Consistency check 3
-        if((inode.used_size & 0x80) == 0){
-            if(inode.used_size != 0 || inode.dir_parent != 0 || inode.start_block != 0
-                || strncmp(inode.name, "\0\0\0\0\0", 5) != 0){
+        if ((inode.used_size & 0x80) == 0) {
+            if (inode.used_size != 0 || inode.dir_parent != 0 || inode.start_block != 0
+                || strncmp(inode.name, "\0\0\0\0\0", 5) != 0) {
                 fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 3);
             }
-        }else{
-            if( strncmp(inode.name, "\0\0\0\0\0", 5) == 0){
+        } else {
+            if (strncmp(inode.name, "\0\0\0\0\0", 5) == 0) {
                 fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 3);
             }
         }
@@ -230,19 +231,39 @@ void fs_resize(char name[5], int new_size) {
         for (int i = 0; i < old_size; i++) {
             zero_out_block(super_block.inode[node_index].start_block + old_size + i, file_stream);
         }
+        clear_used_blocks(super_block.free_block_list,
+                          super_block.inode[node_index].start_block + new_size + 1, old_size - new_size);
+
     }
     // TODO: increase size
     if (old_size < new_size) {
-        int start_block =  super_block.inode[node_index].start_block;
+        int start_block = super_block.inode[node_index].start_block;
+        // check if the next blocks are free
         bool not_free = 0;
         for (int i = start_block; i < start_block + old_size; i++) {
             not_free = not_free | get_ith_bit(super_block.free_block_list, i);
         }
-        if(not_free){
-            int new_start_block =  free_contiguous_blocks(super_block.free_block_list, new_size);
+        if (not_free) {
+            // create a copy of the free block list so you can search for the
+            // next free node assuming that the old blocks are cleared
+            char free_copy[16];
+            memcpy(free_copy, super_block.free_block_list, 16);
+            clear_used_blocks(free_copy, start_block, old_size);
+            int new_start_block = free_contiguous_blocks(free_copy, new_size);
+            if (new_start_block == -1) {
+                fprintf(stderr, ERROR_CANNOT_EXPAND, name, new_size);
+                return;
+            } else {
+                move_blocks(start_block, new_start_block, old_size, file_stream);
+                clear_used_blocks(super_block.free_block_list, start_block, old_size);
+                set_used_blocks(super_block.free_block_list, start_block, new_size);
+                super_block.inode[node_index].start_block = new_start_block;
+                super_block.inode[node_index].used_size = 0x80 | new_size;
+            }
+
         } else {
             cout << "Resized " << endl;
-            super_block.inode[node_index].used_size =  0x80 | new_size;
+            super_block.inode[node_index].used_size = 0x80 | new_size;
             set_used_blocks(super_block.free_block_list, start_block + old_size, new_size - old_size);
         }
     }
@@ -277,7 +298,7 @@ int main(int argc, char **argv) {
     fs_mount((char *) "disk0");
 
     fs_create((char *) "file2", 5);
-    fs_resize((char *)"file2", 7);
+    fs_resize((char *) "file2", 118);
     fs_create((char *) "dir1\0", 0);
     fs_cd((char *) "dir1\0");
     fs_create((char *) "file\0", 3);
@@ -311,6 +332,7 @@ int main(int argc, char **argv) {
     fs_cd((char *) "..");
     fs_delete((char *) "dir1\0");
      */
+    fs_resize((char *) "file2", 3);
     file_stream.close();
 
 

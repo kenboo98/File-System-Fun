@@ -21,5 +21,5 @@ int count_n_files(const Inode inodes[N_INODES], int dir_index);
 void zero_out_block(int block_index, std::fstream &file_stream);
 void set_used_blocks(char free_blocks[16], int start_index, int block_size);
 void clear_used_blocks(char free_blocks[16], int start_index, int block_size);
-void move_blocks(int old_start_pos, int new_start_pos, std::fstream &file_strem);
+void move_blocks(int old_start_pos, int new_start_pos, int size, std::fstream &file_stream);
 #endif //A3_HELPERFUNCTIONS_H

@@ -203,7 +203,7 @@ int count_n_files(const Inode inodes[N_INODES], int dir_index) {
     return count;
 }
 /**
- * Zero out a block
+ * Zero out a block at an index
  * @param block_index
  * @param file_stream
  */
@@ -211,7 +211,14 @@ void zero_out_block(int block_index, fstream &file_stream){
     uint8_t zeroes[1024] = {};
     write_block(zeroes, block_index, file_stream);
 }
-
+/**
+ * Move blocks. Starting from old_start_pos, takes size amount of blocks
+ * and moves it to a new position
+ * @param old_start_pos
+ * @param new_start_pos
+ * @param size
+ * @param file_stream
+ */
 void move_blocks(int old_start_pos, int new_start_pos, int size, std::fstream &file_stream){
     for (int block = 0; block < size; block ++){
         uint8_t buffer[BLOC_BYTE_SIZE];
