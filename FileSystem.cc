@@ -24,33 +24,48 @@ const char *ERROR_DIRECTORY_DOES_NOT_EXIST = "Error Directory %s does not exist\
 
 fstream file_stream;
 Super_block super_block;
+bool mount = false;
+
 string disk_name;
 uint8_t working_dir_index = 127;
 uint8_t *buffer = new uint8_t[BLOC_BYTE_SIZE];
 
 void fs_mount(char *new_disk_name) {
-    file_stream.open(new_disk_name, fstream::in | fstream::out | fstream::binary);
-    file_stream.read(super_block.free_block_list, FREE_SPACE_SIZE);
+    Super_block new_block = Super_block();
 
+    file_stream.open(new_disk_name, fstream::in | fstream::out | fstream::binary);
+    file_stream.read(new_block.free_block_list, FREE_SPACE_SIZE);
     //Initialize INodes
     for (int i = 0; i < N_INODES; i++) {
-        file_stream.read(super_block.inode[i].name, NAME_SIZE);
+        file_stream.read(new_block.inode[i].name, NAME_SIZE);
         char buffer[3];
         file_stream.read(buffer, 3);
-        super_block.inode[i].used_size = (uint8_t) buffer[0];
-        super_block.inode[i].start_block = (uint8_t) buffer[1];
-        super_block.inode[i].dir_parent = (uint8_t) buffer[2];
+        new_block.inode[i].used_size = (uint8_t) buffer[0];
+        new_block.inode[i].start_block = (uint8_t) buffer[1];
+        new_block.inode[i].dir_parent = (uint8_t) buffer[2];
+
         // cout << super_block.inode[i].name << endl;
     }
     // check size and start_block of directories
-    for (Inode inode: super_block.inode) {
-
+    for (Inode inode: new_block.inode) {
+        // Consistency check 3
+        if((inode.used_size & 0x80) == 0){
+            if(inode.used_size != 0 || inode.dir_parent != 0 || inode.start_block != 0
+                || strncmp(inode.name, "\0\0\0\0\0", 5) != 0){
+                fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 3);
+            }
+        }else{
+            if( strncmp(inode.name, "\0\0\0\0\0", 5) == 0){
+                fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 3);
+            }
+        }
         // Consistency check 5
         if (inode.dir_parent >> 7 == 1) {
             if ((inode.used_size & 0x7F) != 0 || (inode.start_block & 0x7F) != 0) {
                 fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 5);
             }
         } else if (inode.used_size & 0x80) {
+
             // Consistency check 4
             if (inode.start_block < 1 || inode.start_block > 127) {
                 fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 4);
@@ -61,11 +76,13 @@ void fs_mount(char *new_disk_name) {
             fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 6);
         } else if ((inode.dir_parent & 0x7F) > 0 && (inode.dir_parent & 0x7F) < 125) {
             int parent = inode.dir_parent & 0x7F;
-            if (!(super_block.inode[parent].used_size & 80) || !(super_block.inode[parent].dir_parent & 80)) {
+            if (!(new_block.inode[parent].used_size & 80) || !(new_block.inode[parent].dir_parent & 80)) {
                 fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 6);
             }
         }
     }
+    mount = true;
+    super_block = new_block;
     disk_name = string(new_disk_name);
 
 }
