@@ -225,14 +225,28 @@ void fs_resize(char name[5], int new_size) {
     }
     int old_size = super_block.inode[node_index].used_size & 0x7F;
     if (old_size > new_size) {
+        cout << "smol" << old_size << endl;
+
         for (int i = 0; i < old_size; i++) {
             zero_out_block(super_block.inode[node_index].start_block + old_size + i, file_stream);
         }
     }
     // TODO: increase size
     if (old_size < new_size) {
-
+        int start_block =  super_block.inode[node_index].start_block;
+        bool not_free = 0;
+        for (int i = start_block; i < start_block + old_size; i++) {
+            not_free = not_free | get_ith_bit(super_block.free_block_list, i);
+        }
+        if(not_free){
+            int new_start_block =  free_contiguous_blocks(super_block.free_block_list, new_size);
+        } else {
+            cout << "Resized " << endl;
+            super_block.inode[node_index].used_size =  0x80 | new_size;
+            set_used_blocks(super_block.free_block_list, start_block + old_size, new_size - old_size);
+        }
     }
+    write_superblock(super_block, file_stream);
 }
 
 void fs_cd(char name[5]) {
@@ -263,6 +277,7 @@ int main(int argc, char **argv) {
     fs_mount((char *) "disk0");
 
     fs_create((char *) "file2", 5);
+    fs_resize((char *)"file2", 7);
     fs_create((char *) "dir1\0", 0);
     fs_cd((char *) "dir1\0");
     fs_create((char *) "file\0", 3);
@@ -287,13 +302,15 @@ int main(int argc, char **argv) {
     fs_cd((char *) "..");
     fs_ls();
     */
+    /**
     fs_buff((uint8_t *) "Hello My name is.\0");
     fs_write((char *) "file\0", 0);
     fs_write((char *) "file\0", 1);
     fs_write((char *) "file\0", 2);
-    fs_resize((char *) "file\0", 1);
+    //fs_resize((char *) "file\0", 1);
     fs_cd((char *) "..");
     fs_delete((char *) "dir1\0");
+     */
     file_stream.close();
 
 

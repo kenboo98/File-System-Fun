@@ -36,15 +36,68 @@ int free_contiguous_blocks(const char free_blocks[16], int block_size) {
     }
     return -1;
 }
-
-void set_used_blocks(char free_blocks[16], int start_index, int block_size) {
-    for (int i = 0; i < block_size; i++) {
-        int byte_index = start_index / 8;
-        int bit_index = start_index % 8;
-        free_blocks[byte_index] = free_blocks[byte_index] | 0x80 >> bit_index;
+/**
+ * Get the ith block bit where i is from 0 to 127
+ * @param free_blocks
+ * @param i
+ * @return
+ */
+bool get_ith_bit(const char free_blocks[16], int i){
+    if(i >= 128 || i < 0){
+        fprintf(stderr, "Invalid index");
+        return -1;
     }
+    uint8_t index_mask = 0x80;
+    index_mask = index_mask >> i%8;
+    return (free_blocks[i/8]&index_mask)&1;
+}
+/**
+ * Set the ith block bit where i is from 0 to 127
+ * @param free_blocks
+ * @param i
+ * @param val
+ */
+void set_ith_bit(char free_blocks[16], int i, bool val){
+    if(i >= 128 || i < 0){
+        fprintf(stderr, "Invalid index");
+        return;
+    }
+    uint8_t index_mask = 0x80;
+    index_mask = index_mask >> i%8;
+    free_blocks[i/8] = free_blocks[i/8] | index_mask;
 }
 
+/**
+ * Set used blocks from start_index to start_index + block_size
+ * @param free_blocks
+ * @param start_index
+ * @param block_size
+ */
+void set_used_blocks(char free_blocks[16], int start_index, int block_size) {
+    printf("Block %d set\n", start_index);
+    for (int i = 0; i < block_size; i++) {
+        int byte_index = (start_index + i) / 8;
+        int bit_index = (start_index + i) % 8;
+        free_blocks[byte_index] = free_blocks[byte_index] | (0x80 >> bit_index);
+    }
+    printf("Blocks 1 is %hhx \n",free_blocks[0] );
+}
+
+/**
+ * Set used blocks from start_index to start_index + block_size
+ * @param free_blocks
+ * @param start_index
+ * @param block_size
+ */
+void clear_used_blocks(char free_blocks[16], int start_index, int block_size) {
+    printf("Block %d set\n", start_index);
+    for (int i = 0; i < block_size; i++) {
+        int byte_index = (start_index + i) / 8;
+        int bit_index = (start_index + i) % 8;
+        free_blocks[byte_index] = free_blocks[byte_index] & ~(0x80 >> bit_index);
+    }
+    printf("Blocks 1 is %hhx \n",free_blocks[0] );
+}
 /**
  * Returns the index of the next free inode.
  * @param inodes array of inodes
@@ -157,4 +210,13 @@ int count_n_files(const Inode inodes[N_INODES], int dir_index) {
 void zero_out_block(int block_index, fstream &file_stream){
     uint8_t zeroes[1024] = {};
     write_block(zeroes, block_index, file_stream);
+}
+
+void move_blocks(int old_start_pos, int new_start_pos, int size, std::fstream &file_stream){
+    for (int block = 0; block < size; block ++){
+        uint8_t buffer[BLOC_BYTE_SIZE];
+        read_block(buffer, old_start_pos + block, file_stream);
+        write_block(buffer, new_start_pos + block, file_stream);
+        zero_out_block(old_start_pos + block, file_stream);
+    }
 }
