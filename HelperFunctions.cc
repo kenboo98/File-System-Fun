@@ -49,7 +49,7 @@ bool get_ith_bit(const char free_blocks[16], int i){
     }
     uint8_t index_mask = 0x80;
     index_mask = index_mask >> i%8;
-    return (free_blocks[i/8]&index_mask)&1;
+    return (free_blocks[i/8]&index_mask);
 }
 /**
  * Set the ith block bit where i is from 0 to 127

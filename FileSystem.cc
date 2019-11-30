@@ -227,8 +227,6 @@ void fs_resize(char name[5], int new_size) {
     }
     int old_size = super_block.inode[node_index].used_size & 0x7F;
     if (old_size > new_size) {
-        cout << "smol" << old_size << endl;
-
         for (int i = 0; i < old_size; i++) {
             zero_out_block(super_block.inode[node_index].start_block + old_size + i, file_stream);
         }
@@ -263,7 +261,6 @@ void fs_resize(char name[5], int new_size) {
             }
 
         } else {
-            cout << "Resized " << endl;
             super_block.inode[node_index].used_size = 0x80 | new_size;
             set_used_blocks(super_block.free_block_list, start_block + old_size, new_size - old_size);
         }
@@ -294,24 +291,25 @@ void fs_cd(char name[5]) {
 
 
 }
-void fs_defrag(){
+
+void fs_defrag() {
     unordered_map<int, int> block_to_inode;
-    for(int node_idx = 0; node_idx < N_INODES; node_idx++){
+    for (int node_idx = 0; node_idx < N_INODES; node_idx++) {
         Inode inode = super_block.inode[node_idx];
-        if(inode.used_size&0x80){
-            for(int i = inode.start_block; i < inode.start_block + (inode.used_size & 0x7F); i++){
+        if (inode.used_size & 0x80) {
+            for (int i = inode.start_block; i < inode.start_block + (inode.used_size & 0x7F); i++) {
                 block_to_inode[i] = node_idx;
             }
         }
     }
     int index = 1;
     int last_free_index = -1;
-    while(index < N_BLOCKS){
-        if(get_ith_bit(super_block.free_block_list, index)){
-            if(last_free_index != -1){
+    while (index < N_BLOCKS) {
+        if (get_ith_bit(super_block.free_block_list, index)) {
+            if (last_free_index != -1) {
                 int node_index = block_to_inode[index];
                 int old_idx = super_block.inode[node_index].start_block;
-                int size = super_block.inode[node_index].used_size&0x7F;
+                int size = super_block.inode[node_index].used_size & 0x7F;
 
                 move_blocks(old_idx, last_free_index, size, file_stream);
                 clear_used_blocks(super_block.free_block_list, old_idx, size);
@@ -322,13 +320,15 @@ void fs_defrag(){
                 index = last_free_index + size - 1;
                 last_free_index = -1;
             }
-        }else{
-            if(last_free_index == -1){
+        } else {
+            if (last_free_index == -1) {
                 last_free_index = index;
+
             }
         }
-        index ++;
+        index++;
     }
+    write_superblock(super_block, file_stream);
 }
 
 int main(int argc, char **argv) {
@@ -370,7 +370,7 @@ int main(int argc, char **argv) {
     fs_delete((char *) "dir1\0");
      */
     fs_resize((char *) "file2", 3);
-    //fs_defrag();
+    fs_defrag();
     file_stream.close();
 
 
