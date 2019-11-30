@@ -74,7 +74,6 @@ void set_ith_bit(char free_blocks[16], int i, bool val){
  * @param block_size
  */
 void set_used_blocks(char free_blocks[16], int start_index, int block_size) {
-    printf("Block %d set\n", start_index);
     for (int i = 0; i < block_size; i++) {
         int byte_index = (start_index + i) / 8;
         int bit_index = (start_index + i) % 8;
@@ -90,7 +89,6 @@ void set_used_blocks(char free_blocks[16], int start_index, int block_size) {
  * @param block_size
  */
 void clear_used_blocks(char free_blocks[16], int start_index, int block_size) {
-    printf("Block %d set\n", start_index);
     for (int i = 0; i < block_size; i++) {
         int byte_index = (start_index + i) / 8;
         int bit_index = (start_index + i) % 8;

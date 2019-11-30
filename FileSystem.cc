@@ -332,44 +332,21 @@ void fs_defrag() {
 }
 
 int main(int argc, char **argv) {
-    fs_mount((char *) "disk0");
-
-    fs_create((char *) "file2", 5);
-    fs_resize((char *) "file2", 118);
-    fs_create((char *) "dir1\0", 0);
-    fs_cd((char *) "dir1\0");
-    fs_create((char *) "file\0", 3);
+    /* Test 1
+    fs_mount((char *) "sample_tests/sample_test_1/disk1");
     fs_create((char *) "file1", 1);
-    //fs_delete((char *) "hi\0");
-    //fs_mount((char *) "sample_tests/sample_test_4/clean_disk_result");
-    //fs_create((char *) "test1", 3);
-    // Test writing buffer and ls
-    /*
-    fs_buff((uint8_t *) "Hello My name is.\0");
+    fs_buff((uint8_t *) "helloworld\0");
     fs_write((char *) "file1", 0);
-    fs_buff((uint8_t *) "GROG GROG GROG\0");
-    fs_write((char *) "file\0", 2);
-    fs_buff((uint8_t *) "PLEBS\0");
-    fs_write((char *) "file2\0", 3);
-    fs_ls();
-    fs_cd((char *) "dir1\0");
-    fs_ls();
-    fs_create((char *) "poop\0", 1);
-    fs_write((char *) "poop\0", 0);
-    fs_ls();
-    fs_cd((char *) "..");
-    fs_ls();
     */
-    /**
-    fs_buff((uint8_t *) "Hello My name is.\0");
-    fs_write((char *) "file\0", 0);
-    fs_write((char *) "file\0", 1);
-    fs_write((char *) "file\0", 2);
-    //fs_resize((char *) "file\0", 1);
-    fs_cd((char *) "..");
-    fs_delete((char *) "dir1\0");
-     */
-    fs_resize((char *) "file2", 3);
+
+    // Test 2
+    fs_mount((char *) "sample_tests/sample_test_2/disk1");
+    fs_create((char *) "file1", 1);
+    fs_buff((uint8_t *) "helloworld\0");
+    fs_write((char *) "file1", 0);
+    fs_create((char *) "file2", 10);
+    fs_ls();
+    fs_delete((char *) "file1");
     fs_defrag();
     file_stream.close();
 
