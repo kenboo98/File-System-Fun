@@ -8,6 +8,7 @@
 #include <iostream>
 #include <unordered_set>
 #include <cstring>
+#include <unordered_map>
 
 using namespace std;
 
@@ -232,7 +233,7 @@ void fs_resize(char name[5], int new_size) {
             zero_out_block(super_block.inode[node_index].start_block + old_size + i, file_stream);
         }
         clear_used_blocks(super_block.free_block_list,
-                          super_block.inode[node_index].start_block + new_size + 1, old_size - new_size);
+                          super_block.inode[node_index].start_block + new_size, old_size - new_size);
 
     }
     // TODO: increase size
@@ -293,6 +294,42 @@ void fs_cd(char name[5]) {
 
 
 }
+void fs_defrag(){
+    unordered_map<int, int> block_to_inode;
+    for(int node_idx = 0; node_idx < N_INODES; node_idx++){
+        Inode inode = super_block.inode[node_idx];
+        if(inode.used_size&0x80){
+            for(int i = inode.start_block; i < inode.start_block + (inode.used_size & 0x7F); i++){
+                block_to_inode[i] = node_idx;
+            }
+        }
+    }
+    int index = 1;
+    int last_free_index = -1;
+    while(index < N_BLOCKS){
+        if(get_ith_bit(super_block.free_block_list, index)){
+            if(last_free_index != -1){
+                int node_index = block_to_inode[index];
+                int old_idx = super_block.inode[node_index].start_block;
+                int size = super_block.inode[node_index].used_size&0x7F;
+
+                move_blocks(old_idx, last_free_index, size, file_stream);
+                clear_used_blocks(super_block.free_block_list, old_idx, size);
+                set_used_blocks(super_block.free_block_list, last_free_index, size);
+
+                super_block.inode[node_index].start_block = last_free_index;
+
+                index = last_free_index + size - 1;
+                last_free_index = -1;
+            }
+        }else{
+            if(last_free_index == -1){
+                last_free_index = index;
+            }
+        }
+        index ++;
+    }
+}
 
 int main(int argc, char **argv) {
     fs_mount((char *) "disk0");
@@ -333,6 +370,7 @@ int main(int argc, char **argv) {
     fs_delete((char *) "dir1\0");
      */
     fs_resize((char *) "file2", 3);
+    //fs_defrag();
     file_stream.close();
 
 

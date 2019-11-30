@@ -10,6 +10,7 @@ extern "C" {
 
 const int BLOC_BYTE_SIZE = 1024;
 const int FREE_SPACE_SIZE = 16;
+const int N_BLOCKS = 128;
 //INode Constants
 const int N_INODES = 126;
 const int NAME_SIZE = 5;
