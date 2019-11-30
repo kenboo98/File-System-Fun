@@ -196,7 +196,7 @@ int count_n_files(const Inode inodes[N_INODES], int dir_index) {
             count++;
         }
     }
-    return count;
+    return count + 2;
 }
 /**
  * Zero out a block at an index
