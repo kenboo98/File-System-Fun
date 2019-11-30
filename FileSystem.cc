@@ -141,6 +141,8 @@ void fs_delete_recurse(char name[5], int current_dir) {
             }
         }
     } else {
+        clear_used_blocks(super_block.free_block_list, super_block.inode[node_index].start_block,
+                          super_block.inode[node_index].used_size&0x7F);
         for (int i = 0; i < (super_block.inode[node_index].used_size & 0x7F); i++) {
             zero_out_block(super_block.inode[node_index].start_block + i, file_stream);
         }
@@ -340,7 +342,7 @@ int main(int argc, char **argv) {
     */
 
     // Test 2
-    fs_mount((char *) "sample_tests/sample_test_2/disk1");
+    fs_mount((char *) "disk0");
     fs_create((char *) "file1", 1);
     fs_buff((uint8_t *) "helloworld\0");
     fs_write((char *) "file1", 0);

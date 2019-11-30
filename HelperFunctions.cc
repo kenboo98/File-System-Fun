@@ -79,7 +79,6 @@ void set_used_blocks(char free_blocks[16], int start_index, int block_size) {
         int bit_index = (start_index + i) % 8;
         free_blocks[byte_index] = free_blocks[byte_index] | (0x80 >> bit_index);
     }
-    printf("Blocks 1 is %hhx \n",free_blocks[0] );
 }
 
 /**
@@ -94,7 +93,6 @@ void clear_used_blocks(char free_blocks[16], int start_index, int block_size) {
         int bit_index = (start_index + i) % 8;
         free_blocks[byte_index] = free_blocks[byte_index] & ~(0x80 >> bit_index);
     }
-    printf("Blocks 1 is %hhx \n",free_blocks[0] );
 }
 /**
  * Returns the index of the next free inode.
