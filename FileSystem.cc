@@ -75,6 +75,10 @@ void fs_mount(const char *new_disk_name) {
             fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 1);
             return;
         }
+        if (get_ith_bit(new_block.free_block_list, i) == 1 && block_to_inode.count(i) != 1) {
+            fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 1);
+            return;
+        }
     }
 
     // check size and start_block of directories
