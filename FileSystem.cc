@@ -17,14 +17,16 @@ using namespace std;
 
 
 // Error messages
+const char *ERROR_CANNOT_FIND_DISK = "Error: Cannot find disk %s\n";
+const char *ERROR_NO_MOUNT = "Error: No file system is mounted\n";
 const char *ERROR_INCONSISTENT_SYSTEM = "Error: File system in %s is inconsistent (error code: %d)\n";
 const char *ERROR_SUPERBLOCK_FULL = "Error: Superblock in disk %s is full, cannot create %s\n";
 const char *ERROR_FILE_DIR_EXISTS = "Error: File or directory %s already exists\n";
-const char *ERROR_BLOCK_ALLOCATION = "Error: Cannot allocate %d blocks on %s\n";
+const char *ERROR_BLOCK_ALLOCATION = "Error: Cannot allocate %d on %s\n";
 const char *ERROR_FILE_DOES_NOT_EXIST = "Error: File %s does not exist\n";
 const char *ERROR_FILE_DIR_DOES_NOT_EXIST = "Error: File or directory %s does not exist\n";
 const char *ERROR_BLOCK_NUM_DOES_NOT_EXIST = "Error: %s does not have block %d\n";
-const char *ERROR_DIRECTORY_DOES_NOT_EXIST = "Error Directory %s does not exist\n";
+const char *ERROR_DIRECTORY_DOES_NOT_EXIST = "Error: Directory %s does not exist\n";
 const char *ERROR_CANNOT_EXPAND = "Error: File %s cannot expand to size %d\n";
 const char *ERROR_COMMAND = "Command Error: %s, %d\n";
 
@@ -36,6 +38,13 @@ string disk_name;
 uint8_t working_dir_index = 127;
 uint8_t *buffer = new uint8_t[BLOC_BYTE_SIZE];
 
+void reopen_filestream(){
+    file_stream.close();
+    if (mount){
+        file_stream.open(disk_name, fstream::in | fstream::out | fstream::binary);
+    }
+}
+
 void fs_mount(const char *new_disk_name) {
     // TODO close file_stream and reopen old stream on consistency failure
     Super_block new_block = Super_block();
@@ -44,6 +53,11 @@ void fs_mount(const char *new_disk_name) {
         file_stream.close();
     }
     file_stream.open(new_disk_name, fstream::in | fstream::out | fstream::binary);
+    if(!file_stream.good()){
+        fprintf(stderr, ERROR_CANNOT_FIND_DISK, new_disk_name);
+        reopen_filestream();
+        return;
+    }
     file_stream.read(new_block.free_block_list, FREE_SPACE_SIZE);
     //Initialize INodes
     for (int i = 0; i < N_INODES; i++) {
@@ -64,6 +78,7 @@ void fs_mount(const char *new_disk_name) {
             for (int i = inode.start_block; i < inode.start_block + (inode.used_size & 0x7F); i++) {
                 if (block_to_inode.count(i)) {
                     fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 1);
+                    reopen_filestream();
                     return;
                 }
                 block_to_inode[i] = node_idx;
@@ -73,10 +88,12 @@ void fs_mount(const char *new_disk_name) {
     for (int i = 1; i < N_BLOCKS; i++) {
         if (get_ith_bit(new_block.free_block_list, i) == 0 && block_to_inode.count(i) == 1) {
             fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 1);
+            reopen_filestream();
             return;
         }
         if (get_ith_bit(new_block.free_block_list, i) == 1 && block_to_inode.count(i) != 1) {
             fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 1);
+            reopen_filestream();
             return;
         }
     }
@@ -88,11 +105,13 @@ void fs_mount(const char *new_disk_name) {
             if (inode.used_size != 0 || inode.dir_parent != 0 || inode.start_block != 0
                 || strncmp(inode.name, "", 5) != 0) {
                 fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 3);
+                reopen_filestream();
                 return;
             }
         } else {
             if (strncmp(inode.name, "", 5) == 0) {
                 fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 3);
+                reopen_filestream();
                 return;
             }
         }
@@ -100,6 +119,7 @@ void fs_mount(const char *new_disk_name) {
         if (inode.dir_parent >> 7 == 1) {
             if ((inode.used_size & 0x7F) != 0 || (inode.start_block & 0x7F) != 0) {
                 fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 5);
+                reopen_filestream();
                 return;
             }
         } else if (inode.used_size & 0x80) {
@@ -107,16 +127,19 @@ void fs_mount(const char *new_disk_name) {
             // Consistency check 4
             if (inode.start_block < 1 || inode.start_block > 127) {
                 fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 4);
+                reopen_filestream();
                 return;
             }
         }
         // Consistency Check 6
         if ((inode.dir_parent & 0x7F) == 126) {
             fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 6);
+            reopen_filestream();
         } else if ((inode.dir_parent & 0x7F) > 0 && (inode.dir_parent & 0x7F) < 125) {
             int parent = inode.dir_parent & 0x7F;
             if (!(new_block.inode[parent].used_size & 80) || !(new_block.inode[parent].dir_parent & 80)) {
                 fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 6);
+                reopen_filestream();
                 return;
             }
         }
@@ -128,7 +151,10 @@ void fs_mount(const char *new_disk_name) {
 }
 
 void fs_create(const char name[5], int size) {
-    //cout << disk_name << endl;
+    if (!mount){
+        fprintf(stderr,"%s", ERROR_NO_MOUNT);
+        return;
+    }
     int free_inode = free_inode_index(super_block.inode);
     // Check for availability of a free node
     if (free_inode == -1) {
@@ -197,11 +223,19 @@ void fs_delete_recurse(const char name[5], int current_dir) {
 }
 
 void fs_delete(const char name[5]) {
+    if (!mount){
+        fprintf(stderr, "%s", ERROR_NO_MOUNT);
+        return;
+    }
     fs_delete_recurse(name, working_dir_index);
 }
 
 
 void fs_read(const char name[5], int block_num) {
+    if (!mount){
+        fprintf(stderr, "%s", ERROR_NO_MOUNT);
+        return;
+    }
     int node_index = name_to_index(super_block.inode, name);
     if (node_index == -1) {
         fprintf(stderr, ERROR_FILE_DIR_DOES_NOT_EXIST, name);
@@ -215,6 +249,10 @@ void fs_read(const char name[5], int block_num) {
 }
 
 void fs_write(const char name[5], int block_num) {
+    if (!mount){
+        fprintf(stderr, "%s", ERROR_NO_MOUNT);
+        return;
+    }
     int node_index = name_to_index(super_block.inode, name);
     if (node_index == -1) {
         fprintf(stderr, ERROR_FILE_DOES_NOT_EXIST, name);
@@ -229,6 +267,10 @@ void fs_write(const char name[5], int block_num) {
 
 
 void fs_buff(uint8_t buff[1024]) {
+    if (!mount){
+        fprintf(stderr, "%s", ERROR_NO_MOUNT);
+        return;
+    }
     for (int i = 0; i < BLOC_BYTE_SIZE; i++) {
         buffer[i] = 0;
     }
@@ -236,6 +278,10 @@ void fs_buff(uint8_t buff[1024]) {
 }
 
 void fs_ls() {
+    if (!mount){
+        fprintf(stderr, "%s", ERROR_NO_MOUNT);
+        return;
+    }
     if (working_dir_index == 127) {
         printf("%-5s %3d\n", ".", count_n_files(super_block.inode, 127));
         printf("%-5s %3d\n", "..", count_n_files(super_block.inode, 127));
@@ -261,6 +307,10 @@ void fs_ls() {
 }
 
 void fs_resize(const char name[5], int new_size) {
+    if (!mount){
+        fprintf(stderr, "%s", ERROR_NO_MOUNT);
+        return;
+    }
     int node_index = name_to_index(super_block.inode, name);
     if (node_index == -1) {
         fprintf(stderr, ERROR_FILE_DOES_NOT_EXIST, name);
@@ -308,12 +358,16 @@ void fs_resize(const char name[5], int new_size) {
 }
 
 void fs_cd(const char name[5]) {
+    if (!mount){
+        fprintf(stderr, "%s", ERROR_NO_MOUNT);
+        return;
+    }
     if (strncmp(name, ".", 5) == 0) {
         return;
     }
     if (strncmp(name, "..", 5) == 0) {
         if (working_dir_index == 127) {
-            printf(ERROR_DIRECTORY_DOES_NOT_EXIST, name);
+            fprintf(stderr, ERROR_DIRECTORY_DOES_NOT_EXIST, name);
             return;
         } else {
             working_dir_index = super_block.inode[working_dir_index].dir_parent & 0x7F;
@@ -321,17 +375,23 @@ void fs_cd(const char name[5]) {
         }
     }
     int node_index = name_to_index(super_block.inode, name);
-    if (super_block.inode[node_index].dir_parent & 0x80) {
+
+    if (node_index != -1 && super_block.inode[node_index].dir_parent & 0x80
+            && (super_block.inode[node_index].dir_parent & 0x7F) == working_dir_index ) {
         working_dir_index = node_index;
         return;
     } else {
-        printf(ERROR_DIRECTORY_DOES_NOT_EXIST, name);
+        fprintf(stderr, ERROR_DIRECTORY_DOES_NOT_EXIST, name);
     }
 
 
 }
 
 void fs_defrag() {
+    if (!mount){
+        fprintf(stderr, "%s", ERROR_NO_MOUNT);
+        return;
+    }
     unordered_map<int, int> block_to_inode;
     for (int node_idx = 0; node_idx < N_INODES; node_idx++) {
         Inode inode = super_block.inode[node_idx];
