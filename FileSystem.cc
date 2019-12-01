@@ -37,6 +37,7 @@ uint8_t working_dir_index = 127;
 uint8_t *buffer = new uint8_t[BLOC_BYTE_SIZE];
 
 void fs_mount(const char *new_disk_name) {
+    // TODO close file_stream and reopen old stream on consistency failure
     Super_block new_block = Super_block();
     // If a file is already mounted, close the current file stream so another one can be mounted
     if(mount){
@@ -72,6 +73,7 @@ void fs_mount(const char *new_disk_name) {
     for (int i = 1; i < N_BLOCKS; i++) {
         if (get_ith_bit(new_block.free_block_list, i) == 0 && block_to_inode.count(i) == 1) {
             fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 1);
+            return;
         }
     }
 
@@ -266,9 +268,8 @@ void fs_resize(const char name[5], int new_size) {
         }
         clear_used_blocks(super_block.free_block_list,
                           super_block.inode[node_index].start_block + new_size, old_size - new_size);
-
+        super_block.inode[node_index].used_size = 0x80 | new_size;
     }
-    // TODO: increase size
     if (old_size < new_size) {
         int start_block = super_block.inode[node_index].start_block;
         // check if the next blocks are free
