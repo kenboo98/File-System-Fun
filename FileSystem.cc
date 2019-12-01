@@ -52,6 +52,27 @@ void fs_mount(const char *new_disk_name) {
 
         // cout << super_block.inode[i].name << endl;
     }
+
+    // Consistency Check 1
+    unordered_map<int, int> block_to_inode;
+    for (int node_idx = 0; node_idx < N_INODES; node_idx++) {
+        Inode inode = super_block.inode[node_idx];
+        if (inode.used_size & 0x80) {
+            for (int i = inode.start_block; i < inode.start_block + (inode.used_size & 0x7F); i++) {
+                if (block_to_inode.count(i)) {
+                    fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 1);
+                    return;
+                }
+                block_to_inode[i] = node_idx;
+            }
+        }
+    }
+    for (int i = 1; i < N_BLOCKS; i++) {
+        if (get_ith_bit(super_block.free_block_list, i) == 0 && block_to_inode.count(i) == 1) {
+            fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 1);
+        }
+    }
+
     // check size and start_block of directories
     for (Inode inode: new_block.inode) {
         // Consistency check 3
@@ -59,10 +80,12 @@ void fs_mount(const char *new_disk_name) {
             if (inode.used_size != 0 || inode.dir_parent != 0 || inode.start_block != 0
                 || strncmp(inode.name, "\0\0\0\0\0", 5) != 0) {
                 fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 3);
+                return;
             }
         } else {
             if (strncmp(inode.name, "\0\0\0\0\0", 5) == 0) {
                 fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 3);
+                return;
             }
         }
         // Consistency check 5
