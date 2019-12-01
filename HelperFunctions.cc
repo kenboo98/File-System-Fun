@@ -192,7 +192,7 @@ int name_to_index(const Inode inodes[N_INODES], const char *name) {
 int count_n_files(const Inode inodes[N_INODES], int dir_index) {
     int count = 0;
     for (int i = 0; i < N_INODES; i++) {
-        if (dir_index == (inodes[i].dir_parent & 0x7F)) {
+        if ( (inodes[i].used_size & 0x80) && (dir_index == (inodes[i].dir_parent & 0x7F))) {
             count++;
         }
     }

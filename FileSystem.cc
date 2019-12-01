@@ -137,7 +137,7 @@ void fs_mount(const char *new_disk_name) {
             reopen_filestream();
         } else if ((inode.dir_parent & 0x7F) > 0 && (inode.dir_parent & 0x7F) < 125) {
             int parent = inode.dir_parent & 0x7F;
-            if (!(new_block.inode[parent].used_size & 80) || !(new_block.inode[parent].dir_parent & 80)) {
+            if (!(new_block.inode[parent].used_size & 0x80) || !(new_block.inode[parent].dir_parent & 0x80)) {
                 fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 6);
                 reopen_filestream();
                 return;
