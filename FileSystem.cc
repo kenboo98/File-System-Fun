@@ -26,7 +26,7 @@ const char *ERROR_FILE_DIR_DOES_NOT_EXIST = "Error: File or directory %s does no
 const char *ERROR_BLOCK_NUM_DOES_NOT_EXIST = "Error: %s does not have block %d\n";
 const char *ERROR_DIRECTORY_DOES_NOT_EXIST = "Error Directory %s does not exist\n";
 const char *ERROR_CANNOT_EXPAND = "Error: File %s cannot expand to size %d\n";
-const char *ERROR_COMMAND = "Command Error: %s, %d";
+const char *ERROR_COMMAND = "Command Error: %s, %d\n";
 
 fstream file_stream;
 Super_block super_block;
@@ -38,7 +38,10 @@ uint8_t *buffer = new uint8_t[BLOC_BYTE_SIZE];
 
 void fs_mount(const char *new_disk_name) {
     Super_block new_block = Super_block();
-
+    // If a file is already mounted, close the current file stream so another one can be mounted
+    if(mount){
+        file_stream.close();
+    }
     file_stream.open(new_disk_name, fstream::in | fstream::out | fstream::binary);
     file_stream.read(new_block.free_block_list, FREE_SPACE_SIZE);
     //Initialize INodes
@@ -50,13 +53,12 @@ void fs_mount(const char *new_disk_name) {
         new_block.inode[i].start_block = (uint8_t) buffer[1];
         new_block.inode[i].dir_parent = (uint8_t) buffer[2];
 
-        // cout << super_block.inode[i].name << endl;
     }
 
     // Consistency Check 1
     unordered_map<int, int> block_to_inode;
     for (int node_idx = 0; node_idx < N_INODES; node_idx++) {
-        Inode inode = super_block.inode[node_idx];
+        Inode inode = new_block.inode[node_idx];
         if (inode.used_size & 0x80) {
             for (int i = inode.start_block; i < inode.start_block + (inode.used_size & 0x7F); i++) {
                 if (block_to_inode.count(i)) {
@@ -68,7 +70,7 @@ void fs_mount(const char *new_disk_name) {
         }
     }
     for (int i = 1; i < N_BLOCKS; i++) {
-        if (get_ith_bit(super_block.free_block_list, i) == 0 && block_to_inode.count(i) == 1) {
+        if (get_ith_bit(new_block.free_block_list, i) == 0 && block_to_inode.count(i) == 1) {
             fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 1);
         }
     }
@@ -78,12 +80,12 @@ void fs_mount(const char *new_disk_name) {
         // Consistency check 3
         if ((inode.used_size & 0x80) == 0) {
             if (inode.used_size != 0 || inode.dir_parent != 0 || inode.start_block != 0
-                || strncmp(inode.name, "\0\0\0\0\0", 5) != 0) {
+                || strncmp(inode.name, "", 5) != 0) {
                 fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 3);
                 return;
             }
         } else {
-            if (strncmp(inode.name, "\0\0\0\0\0", 5) == 0) {
+            if (strncmp(inode.name, "", 5) == 0) {
                 fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 3);
                 return;
             }
@@ -92,12 +94,14 @@ void fs_mount(const char *new_disk_name) {
         if (inode.dir_parent >> 7 == 1) {
             if ((inode.used_size & 0x7F) != 0 || (inode.start_block & 0x7F) != 0) {
                 fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 5);
+                return;
             }
         } else if (inode.used_size & 0x80) {
 
             // Consistency check 4
             if (inode.start_block < 1 || inode.start_block > 127) {
                 fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 4);
+                return;
             }
         }
         // Consistency Check 6
@@ -107,6 +111,7 @@ void fs_mount(const char *new_disk_name) {
             int parent = inode.dir_parent & 0x7F;
             if (!(new_block.inode[parent].used_size & 80) || !(new_block.inode[parent].dir_parent & 80)) {
                 fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 6);
+                return;
             }
         }
     }
@@ -384,7 +389,7 @@ void parse_file(string file_name) {
                 continue;
             }
             int size = stoi(tokens[2]);
-            if (size >= N_BLOCKS - 1 || size < 1  || tokens[1].size() > 5) {
+            if (size >= N_BLOCKS - 1 || size < 0  || tokens[1].size() > 5) {
                 fprintf(stderr, ERROR_COMMAND, file_name.c_str(), line_num);
                 continue;
             }
@@ -445,7 +450,7 @@ void parse_file(string file_name) {
             }
             fs_defrag();
         } else if (tokens[0] == "Y") {
-            if (tokens.size() != 1) {
+            if (tokens.size() != 2) {
                 fprintf(stderr, ERROR_COMMAND, file_name.c_str(), line_num);
                 continue;
             }
