@@ -373,28 +373,88 @@ void parse_file(string file_name) {
         vector<string> tokens(begin, end);
 
         if (tokens[0] == "M") {
+            if (tokens.size() != 2) {
+                fprintf(stderr, ERROR_COMMAND, file_name.c_str(), line_num);
+                continue;
+            }
             fs_mount(tokens[1].c_str());
         } else if (tokens[0] == "C") {
+            if (tokens.size() != 3) {
+                fprintf(stderr, ERROR_COMMAND, file_name.c_str(), line_num);
+                continue;
+            }
             int size = stoi(tokens[2]);
+            if (size >= N_BLOCKS - 1 || size < 1  || tokens[1].size() > 5) {
+                fprintf(stderr, ERROR_COMMAND, file_name.c_str(), line_num);
+                continue;
+            }
             fs_create(tokens[1].c_str(), size);
         } else if (tokens[0] == "D") {
+            if (tokens.size() != 2) {
+                fprintf(stderr, ERROR_COMMAND, file_name.c_str(), line_num);
+                continue;
+            }
+            if (tokens[1].size() > 5) {
+                fprintf(stderr, ERROR_COMMAND, file_name.c_str(), line_num);
+                continue;
+            }
             fs_delete(tokens[1].c_str());
         } else if (tokens[0] == "R") {
+            if (tokens.size() != 3) {
+                fprintf(stderr, ERROR_COMMAND, file_name.c_str(), line_num);
+                continue;
+            }
             int block = stoi(tokens[2]);
+            if (block < 0 || block > 127) {
+                fprintf(stderr, ERROR_COMMAND, file_name.c_str(), line_num);
+                continue;
+            }
             fs_read(tokens[1].c_str(), block);
         } else if (tokens[0] == "W") {
+            if (tokens.size() != 3) {
+                fprintf(stderr, ERROR_COMMAND, file_name.c_str(), line_num);
+                continue;
+            }
             int block = stoi(tokens[2]);
+            if (block < 0 || block > 127) {
+                fprintf(stderr, ERROR_COMMAND, file_name.c_str(), line_num);
+                continue;
+            }
             fs_write(tokens[1].c_str(), block);
         } else if (tokens[0] == "L") {
+            if (tokens.size() != 1) {
+                fprintf(stderr, ERROR_COMMAND, file_name.c_str(), line_num);
+                continue;
+            }
             fs_ls();
         } else if (tokens[0] == "E") {
+            if (tokens.size() != 3) {
+                fprintf(stderr, ERROR_COMMAND, file_name.c_str(), line_num);
+                continue;
+            }
             int size = stoi(tokens[2]);
+            if (size >= N_BLOCKS - 1 || size < 1  || tokens[1].size() > 5) {
+                fprintf(stderr, ERROR_COMMAND, file_name.c_str(), line_num);
+                continue;
+            }
             fs_resize(tokens[1].c_str(), size);
         } else if (tokens[0] == "O") {
+            if (tokens.size() != 1) {
+                fprintf(stderr, ERROR_COMMAND, file_name.c_str(), line_num);
+                continue;
+            }
             fs_defrag();
         } else if (tokens[0] == "Y") {
+            if (tokens.size() != 1) {
+                fprintf(stderr, ERROR_COMMAND, file_name.c_str(), line_num);
+                continue;
+            }
             fs_cd(tokens[1].c_str());
         } else if (tokens[0] == "B") {
+            if (tokens.size() < 2) {
+                fprintf(stderr, ERROR_COMMAND, file_name.c_str(), line_num);
+                continue;
+            }
             uint8_t buffer[1024];
             int vector_size = tokens.size();
             string s;
