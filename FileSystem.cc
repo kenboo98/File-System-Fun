@@ -267,8 +267,8 @@ void fs_resize(const char name[5], int new_size) {
     }
     int old_size = super_block.inode[node_index].used_size & 0x7F;
     if (old_size > new_size) {
-        for (int i = 0; i < old_size; i++) {
-            zero_out_block(super_block.inode[node_index].start_block + old_size + i, file_stream);
+        for (int i = 0; i < (old_size - new_size); i++) {
+            zero_out_block(super_block.inode[node_index].start_block + new_size + i, file_stream);
         }
         clear_used_blocks(super_block.free_block_list,
                           super_block.inode[node_index].start_block + new_size, old_size - new_size);
@@ -294,7 +294,7 @@ void fs_resize(const char name[5], int new_size) {
             } else {
                 move_blocks(start_block, new_start_block, old_size, file_stream);
                 clear_used_blocks(super_block.free_block_list, start_block, old_size);
-                set_used_blocks(super_block.free_block_list, start_block, new_size);
+                set_used_blocks(super_block.free_block_list, new_start_block, new_size);
                 super_block.inode[node_index].start_block = new_start_block;
                 super_block.inode[node_index].used_size = 0x80 | new_size;
             }
