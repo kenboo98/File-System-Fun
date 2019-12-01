@@ -9,6 +9,9 @@
 #include <unordered_set>
 #include <cstring>
 #include <unordered_map>
+#include <sstream>
+#include <iterator>
+#include <vector>
 
 using namespace std;
 
@@ -23,6 +26,7 @@ const char *ERROR_FILE_DIR_DOES_NOT_EXIST = "Error: File or directory %s does no
 const char *ERROR_BLOCK_NUM_DOES_NOT_EXIST = "Error: %s does not have block %d\n";
 const char *ERROR_DIRECTORY_DOES_NOT_EXIST = "Error Directory %s does not exist\n";
 const char *ERROR_CANNOT_EXPAND = "Error: File %s cannot expand to size %d\n";
+const char *ERROR_COMMAND = "Command Error: %s, %d";
 
 fstream file_stream;
 Super_block super_block;
@@ -32,7 +36,7 @@ string disk_name;
 uint8_t working_dir_index = 127;
 uint8_t *buffer = new uint8_t[BLOC_BYTE_SIZE];
 
-void fs_mount(char *new_disk_name) {
+void fs_mount(const char *new_disk_name) {
     Super_block new_block = Super_block();
 
     file_stream.open(new_disk_name, fstream::in | fstream::out | fstream::binary);
@@ -89,7 +93,7 @@ void fs_mount(char *new_disk_name) {
 
 }
 
-void fs_create(char name[5], int size) {
+void fs_create(const char name[5], int size) {
     //cout << disk_name << endl;
     int free_inode = free_inode_index(super_block.inode);
     // Check for availability of a free node
@@ -126,7 +130,7 @@ void fs_create(char name[5], int size) {
 }
 
 
-void fs_delete_recurse(char name[5], int current_dir) {
+void fs_delete_recurse(const char name[5], int current_dir) {
     int node_index = name_to_index(super_block.inode, name);
 
     if (node_index == -1 || (super_block.inode[node_index].dir_parent & 0x7F) != current_dir) {
@@ -142,7 +146,7 @@ void fs_delete_recurse(char name[5], int current_dir) {
         }
     } else {
         clear_used_blocks(super_block.free_block_list, super_block.inode[node_index].start_block,
-                          super_block.inode[node_index].used_size&0x7F);
+                          super_block.inode[node_index].used_size & 0x7F);
         for (int i = 0; i < (super_block.inode[node_index].used_size & 0x7F); i++) {
             zero_out_block(super_block.inode[node_index].start_block + i, file_stream);
         }
@@ -158,12 +162,12 @@ void fs_delete_recurse(char name[5], int current_dir) {
 
 }
 
-void fs_delete(char name[5]) {
+void fs_delete(const char name[5]) {
     fs_delete_recurse(name, working_dir_index);
 }
 
 
-void fs_read(char name[5], int block_num) {
+void fs_read(const char name[5], int block_num) {
     int node_index = name_to_index(super_block.inode, name);
     if (node_index == -1) {
         fprintf(stderr, ERROR_FILE_DIR_DOES_NOT_EXIST, name);
@@ -176,7 +180,7 @@ void fs_read(char name[5], int block_num) {
     read_block(buffer, super_block.inode[node_index].start_block, file_stream);
 }
 
-void fs_write(char name[5], int block_num) {
+void fs_write(const char name[5], int block_num) {
     int node_index = name_to_index(super_block.inode, name);
     if (node_index == -1) {
         fprintf(stderr, ERROR_FILE_DOES_NOT_EXIST, name);
@@ -222,7 +226,7 @@ void fs_ls() {
     }
 }
 
-void fs_resize(char name[5], int new_size) {
+void fs_resize(const char name[5], int new_size) {
     int node_index = name_to_index(super_block.inode, name);
     if (node_index == -1) {
         fprintf(stderr, ERROR_FILE_DOES_NOT_EXIST, name);
@@ -270,7 +274,7 @@ void fs_resize(char name[5], int new_size) {
     write_superblock(super_block, file_stream);
 }
 
-void fs_cd(char name[5]) {
+void fs_cd(const char name[5]) {
     if (strncmp(name, ".", 5) == 0) {
         return;
     }
@@ -333,23 +337,63 @@ void fs_defrag() {
     write_superblock(super_block, file_stream);
 }
 
-int main(int argc, char **argv) {
-    /* Test 1
-    fs_mount((char *) "sample_tests/sample_test_1/disk1");
-    fs_create((char *) "file1", 1);
-    fs_buff((uint8_t *) "helloworld\0");
-    fs_write((char *) "file1", 0);
-    */
 
-    // Test 2
-    fs_mount((char *) "disk0");
-    fs_create((char *) "file1", 1);
-    fs_buff((uint8_t *) "helloworld\0");
-    fs_write((char *) "file1", 0);
-    fs_create((char *) "file2", 10);
-    fs_ls();
-    fs_delete((char *) "file1");
-    fs_defrag();
+void parse_file(string file_name) {
+    ifstream input_file(file_name);
+    string line;
+    int line_num = 0;
+    // TODO: verify correctness of input
+    while (getline(input_file, line)) {
+        line_num++;
+        istringstream ss(line);
+        istream_iterator<string> begin(ss), end;
+        vector<string> tokens(begin, end);
+
+        if (tokens[0] == "M") {
+            fs_mount(tokens[1].c_str());
+        } else if (tokens[0] == "C") {
+            int size = stoi(tokens[2]);
+            fs_create(tokens[1].c_str(), size);
+        } else if (tokens[0] == "D") {
+            fs_delete(tokens[1].c_str());
+        } else if (tokens[0] == "R") {
+            int block = stoi(tokens[2]);
+            fs_read(tokens[1].c_str(), block);
+        } else if (tokens[0] == "W") {
+            int block = stoi(tokens[2]);
+            fs_write(tokens[1].c_str(), block);
+        } else if (tokens[0] == "L") {
+            fs_ls();
+        } else if (tokens[0] == "E") {
+            int size = stoi(tokens[2]);
+            fs_resize(tokens[1].c_str(), size);
+        } else if (tokens[0] == "O") {
+            fs_defrag();
+        } else if (tokens[0] == "Y") {
+            fs_cd(tokens[1].c_str());
+        } else if (tokens[0] == "B") {
+            uint8_t buffer[1024];
+            int vector_size = tokens.size();
+            string s;
+            for (int i = 1; i < vector_size; i++) {
+                s.append(tokens[i]);
+                if (i != vector_size - 1) {
+                    s.append(" ");
+                }
+            }
+            strcpy((char *) buffer, s.c_str());
+            fs_buff(buffer);
+        } else {
+            fprintf(stderr, ERROR_COMMAND, file_name.c_str(), line_num);
+        }
+
+    }
+
+
+}
+
+int main(int argc, char **argv) {
+    parse_file(string(argv[1]));
     file_stream.close();
 
 
