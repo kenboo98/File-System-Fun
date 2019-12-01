@@ -174,10 +174,11 @@ void read_block(uint8_t buffer[BLOC_BYTE_SIZE], int block_index, fstream &file_s
  * @param name
  * @return
  */
-int name_to_index(const Inode inodes[N_INODES], const char *name) {
+int name_to_index(const Inode inodes[N_INODES], const char *name, int parent_dir) {
     int index;
     for (index = 0; index < N_INODES; index++) {
-        if (strncmp(name, inodes[index].name, 5) == 0) {
+        if (strncmp(name, inodes[index].name, 5) == 0
+                && (inodes[index].dir_parent & 0x7F) == parent_dir) {
             return index;
         }
     }

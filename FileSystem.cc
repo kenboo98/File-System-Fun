@@ -132,11 +132,11 @@ void fs_mount(const char *new_disk_name) {
             }
         }
         // Consistency Check 6
-        if ((inode.dir_parent & 0x7F) == 126) {
+        int parent = inode.dir_parent & 0x7F;
+        if (parent == 126) {
             fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 6);
             reopen_filestream();
-        } else if ((inode.dir_parent & 0x7F) > 0 && (inode.dir_parent & 0x7F) < 125) {
-            int parent = inode.dir_parent & 0x7F;
+        } else if (parent >= 0 && parent <= 125 && inode.used_size & 0x80) {
             if (!(new_block.inode[parent].used_size & 0x80) || !(new_block.inode[parent].dir_parent & 0x80)) {
                 fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 6);
                 reopen_filestream();
@@ -191,7 +191,7 @@ void fs_create(const char name[5], int size) {
 
 
 void fs_delete_recurse(const char name[5], int current_dir) {
-    int node_index = name_to_index(super_block.inode, name);
+    int node_index = name_to_index(super_block.inode, name, current_dir);
 
     if (node_index == -1 || (super_block.inode[node_index].dir_parent & 0x7F) != current_dir) {
         fprintf(stderr, ERROR_FILE_DIR_DOES_NOT_EXIST, name);
@@ -236,7 +236,7 @@ void fs_read(const char name[5], int block_num) {
         fprintf(stderr, "%s", ERROR_NO_MOUNT);
         return;
     }
-    int node_index = name_to_index(super_block.inode, name);
+    int node_index = name_to_index(super_block.inode, name, working_dir_index);
     if (node_index == -1) {
         fprintf(stderr, ERROR_FILE_DIR_DOES_NOT_EXIST, name);
         return;
@@ -253,7 +253,7 @@ void fs_write(const char name[5], int block_num) {
         fprintf(stderr, "%s", ERROR_NO_MOUNT);
         return;
     }
-    int node_index = name_to_index(super_block.inode, name);
+    int node_index = name_to_index(super_block.inode, name, working_dir_index);
     if (node_index == -1) {
         fprintf(stderr, ERROR_FILE_DOES_NOT_EXIST, name);
         return;
@@ -311,7 +311,7 @@ void fs_resize(const char name[5], int new_size) {
         fprintf(stderr, "%s", ERROR_NO_MOUNT);
         return;
     }
-    int node_index = name_to_index(super_block.inode, name);
+    int node_index = name_to_index(super_block.inode, name, working_dir_index);
     if (node_index == -1) {
         fprintf(stderr, ERROR_FILE_DOES_NOT_EXIST, name);
     }
@@ -374,7 +374,7 @@ void fs_cd(const char name[5]) {
             return;
         }
     }
-    int node_index = name_to_index(super_block.inode, name);
+    int node_index = name_to_index(super_block.inode, name, working_dir_index);
 
     if (node_index != -1 && super_block.inode[node_index].dir_parent & 0x80
             && (super_block.inode[node_index].dir_parent & 0x7F) == working_dir_index ) {
