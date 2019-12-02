@@ -147,7 +147,7 @@ void write_superblock(const Super_block &superBlock, fstream &file_stream) {
 }
 
 /**
- *
+ * Write a particular block from the provided buffer
  * @param buffer
  * @param block_index
  * @param file_stream
@@ -159,7 +159,7 @@ void write_block(uint8_t buffer[BLOC_BYTE_SIZE], int block_index, fstream &file_
 }
 
 /**
- *
+ * Read a particular block starting from index 0
  * @param buffer
  * @param block_index
  * @param file_stream
@@ -172,10 +172,10 @@ void read_block(uint8_t buffer[BLOC_BYTE_SIZE], int block_index, fstream &file_s
 }
 
 /**
- *
+ * Given a directory and a nam, get the index of the node
  * @param inodes
  * @param name
- * @return
+ * @return -1 if node is not found
  */
 int name_to_index(const Inode inodes[N_INODES], const char *name, int parent_dir) {
     int index;
@@ -189,6 +189,7 @@ int name_to_index(const Inode inodes[N_INODES], const char *name, int parent_dir
 }
 /**
  *  Counts the number of files in a directory index
+ *  Minimum of two since . and .. are always counted
  * @param inodes
  * @param dir_index
  * @return

@@ -38,9 +38,9 @@ string disk_name;
 uint8_t working_dir_index = 127;
 uint8_t *buffer = new uint8_t[BLOC_BYTE_SIZE];
 
-void reopen_filestream(){
+void reopen_filestream() {
     file_stream.close();
-    if (mount){
+    if (mount) {
         file_stream.open(disk_name, fstream::in | fstream::out | fstream::binary);
     }
 }
@@ -49,11 +49,11 @@ void fs_mount(const char *new_disk_name) {
     // TODO close file_stream and reopen old stream on consistency failure
     Super_block new_block = Super_block();
     // If a file is already mounted, close the current file stream so another one can be mounted
-    if(mount){
+    if (mount) {
         file_stream.close();
     }
     file_stream.open(new_disk_name, fstream::in | fstream::out | fstream::binary);
-    if(!file_stream.good()){
+    if (!file_stream.good()) {
         fprintf(stderr, ERROR_CANNOT_FIND_DISK, new_disk_name);
         reopen_filestream();
         return;
@@ -151,8 +151,8 @@ void fs_mount(const char *new_disk_name) {
 }
 
 void fs_create(const char name[5], int size) {
-    if (!mount){
-        fprintf(stderr,"%s", ERROR_NO_MOUNT);
+    if (!mount) {
+        fprintf(stderr, "%s", ERROR_NO_MOUNT);
         return;
     }
     int free_inode = free_inode_index(super_block.inode);
@@ -223,7 +223,7 @@ void fs_delete_recurse(const char name[5], int current_dir) {
 }
 
 void fs_delete(const char name[5]) {
-    if (!mount){
+    if (!mount) {
         fprintf(stderr, "%s", ERROR_NO_MOUNT);
         return;
     }
@@ -232,7 +232,7 @@ void fs_delete(const char name[5]) {
 
 
 void fs_read(const char name[5], int block_num) {
-    if (!mount){
+    if (!mount) {
         fprintf(stderr, "%s", ERROR_NO_MOUNT);
         return;
     }
@@ -249,7 +249,7 @@ void fs_read(const char name[5], int block_num) {
 }
 
 void fs_write(const char name[5], int block_num) {
-    if (!mount){
+    if (!mount) {
         fprintf(stderr, "%s", ERROR_NO_MOUNT);
         return;
     }
@@ -269,7 +269,7 @@ void fs_write(const char name[5], int block_num) {
 
 
 void fs_buff(uint8_t buff[1024]) {
-    if (!mount){
+    if (!mount) {
         fprintf(stderr, "%s", ERROR_NO_MOUNT);
         return;
     }
@@ -280,7 +280,7 @@ void fs_buff(uint8_t buff[1024]) {
 }
 
 void fs_ls() {
-    if (!mount){
+    if (!mount) {
         fprintf(stderr, "%s", ERROR_NO_MOUNT);
         return;
     }
@@ -309,7 +309,7 @@ void fs_ls() {
 }
 
 void fs_resize(const char name[5], int new_size) {
-    if (!mount){
+    if (!mount) {
         fprintf(stderr, "%s", ERROR_NO_MOUNT);
         return;
     }
@@ -360,7 +360,7 @@ void fs_resize(const char name[5], int new_size) {
 }
 
 void fs_cd(const char name[5]) {
-    if (!mount){
+    if (!mount) {
         fprintf(stderr, "%s", ERROR_NO_MOUNT);
         return;
     }
@@ -379,7 +379,7 @@ void fs_cd(const char name[5]) {
     int node_index = name_to_index(super_block.inode, name, working_dir_index);
 
     if (node_index != -1 && super_block.inode[node_index].dir_parent & 0x80
-            && (super_block.inode[node_index].dir_parent & 0x7F) == working_dir_index ) {
+        && (super_block.inode[node_index].dir_parent & 0x7F) == working_dir_index) {
         working_dir_index = node_index;
         return;
     } else {
@@ -390,7 +390,7 @@ void fs_cd(const char name[5]) {
 }
 
 void fs_defrag() {
-    if (!mount){
+    if (!mount) {
         fprintf(stderr, "%s", ERROR_NO_MOUNT);
         return;
     }
@@ -456,7 +456,7 @@ void parse_file(string file_name) {
                 continue;
             }
             int size = stoi(tokens[2]);
-            if (size >= N_BLOCKS - 1 || size < 0  || tokens[1].size() > 5) {
+            if (size >= N_BLOCKS - 1 || size < 0 || tokens[1].size() > 5) {
                 fprintf(stderr, ERROR_COMMAND, file_name.c_str(), line_num);
                 continue;
             }
@@ -505,7 +505,7 @@ void parse_file(string file_name) {
                 continue;
             }
             int size = stoi(tokens[2]);
-            if (size >= N_BLOCKS - 1 || size < 1  || tokens[1].size() > 5) {
+            if (size >= N_BLOCKS - 1 || size < 1 || tokens[1].size() > 5) {
                 fprintf(stderr, ERROR_COMMAND, file_name.c_str(), line_num);
                 continue;
             }
