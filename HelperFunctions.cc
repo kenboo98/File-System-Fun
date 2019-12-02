@@ -155,6 +155,7 @@ void write_superblock(const Super_block &superBlock, fstream &file_stream) {
 void write_block(uint8_t buffer[BLOC_BYTE_SIZE], int block_index, fstream &file_stream) {
     file_stream.seekp(BLOC_BYTE_SIZE * (block_index));
     file_stream.write((char *) buffer, BLOC_BYTE_SIZE);
+
 }
 
 /**
@@ -164,8 +165,10 @@ void write_block(uint8_t buffer[BLOC_BYTE_SIZE], int block_index, fstream &file_
  * @param file_stream
  */
 void read_block(uint8_t buffer[BLOC_BYTE_SIZE], int block_index, fstream &file_stream) {
-    file_stream.seekg(BLOC_BYTE_SIZE * (block_index));
-    file_stream.read((char *) buffer, BLOC_BYTE_SIZE);
+    file_stream.sync();
+    file_stream.seekg(BLOC_BYTE_SIZE * (block_index), ios::beg);
+    file_stream.read(reinterpret_cast<char *>(&buffer[0]), BLOC_BYTE_SIZE);
+
 }
 
 /**

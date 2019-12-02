@@ -245,7 +245,7 @@ void fs_read(const char name[5], int block_num) {
         fprintf(stderr, ERROR_BLOCK_NUM_DOES_NOT_EXIST, name, block_num);
         return;
     }
-    read_block(buffer, super_block.inode[node_index].start_block, file_stream);
+    read_block(buffer, super_block.inode[node_index].start_block + block_num, file_stream);
 }
 
 void fs_write(const char name[5], int block_num) {
@@ -262,7 +262,9 @@ void fs_write(const char name[5], int block_num) {
         fprintf(stderr, ERROR_BLOCK_NUM_DOES_NOT_EXIST, name, block_num);
         return;
     }
-    write_block(buffer, super_block.inode[node_index].start_block, file_stream);
+    write_block(buffer, super_block.inode[node_index].start_block + block_num, file_stream);
+
+
 }
 
 
@@ -328,7 +330,7 @@ void fs_resize(const char name[5], int new_size) {
         int start_block = super_block.inode[node_index].start_block;
         // check if the next blocks are free
         bool not_free = 0;
-        for (int i = start_block; i < start_block + old_size; i++) {
+        for (int i = start_block; i < start_block + new_size; i++) {
             not_free = not_free | get_ith_bit(super_block.free_block_list, i);
         }
         if (not_free) {
