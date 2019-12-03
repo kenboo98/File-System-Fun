@@ -103,24 +103,22 @@ void fs_mount(const char *new_disk_name) {
     for (Inode inode: new_block.inode) {
         // Consistency Check 2
         if(!is_file_unique(inode.dir_parent & 0x7F, new_block.inode, inode.name, node_index)){
-            fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, inode.name, 2);
+            fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 2);
             reopen_filestream();
             return;
         }
         // Consistency check 3
         if ((inode.used_size & 0x80) == 0) {
             if (inode.used_size != 0 || inode.dir_parent != 0 || inode.start_block != 0
-                || strncmp(inode.name, "", 5) != 0) {
+                || inode.name[0] != 0 || inode.name[1] != 0 || inode.name[2] != 0 || inode.name[3] != 0 || inode.name[0] != 0) {
                 fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 3);
                 reopen_filestream();
                 return;
             }
-        } else {
-            if (strncmp(inode.name, "", 5) == 0) {
-                fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 3);
-                reopen_filestream();
-                return;
-            }
+        } else if (strncmp(inode.name, "\0\0\0\0\0", 5) == 0) {
+            fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, new_disk_name, 3);
+            reopen_filestream();
+            return;
         }
         // Consistency check 5
         if (inode.dir_parent >> 7 == 1) {
