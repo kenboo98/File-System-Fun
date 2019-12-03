@@ -126,6 +126,23 @@ bool check_file_exists(uint8_t dir_index, const Inode inodes[N_INODES], const ch
     }
     return false;
 }
+/**
+ * Check if the file or folder is unique
+ * @param dir_index
+ * @param inodes
+ * @param name
+ * @return
+ */
+bool is_file_unique(uint8_t dir_index, const Inode inodes[N_INODES], const char *name, int index) {
+    for (int i = 0; i < N_INODES; i++) {
+        if (dir_index == (inodes[i].dir_parent & 0x7F) &&
+            strncmp(name, inodes[i].name, 5) == 0 && i != index
+            && (inodes[i].used_size & 0x80)) {
+            return false;
+        }
+    }
+    return true;
+}
 
 /**
  * Takes the superblock and writes it to the file

@@ -99,7 +99,14 @@ void fs_mount(const char *new_disk_name) {
     }
 
     // check size and start_block of directories
+    int node_index = 0;
     for (Inode inode: new_block.inode) {
+        // Consistency Check 2
+        if(!is_file_unique(inode.dir_parent & 0x7F, new_block.inode, inode.name, node_index)){
+            fprintf(stderr, ERROR_INCONSISTENT_SYSTEM, inode.name, 2);
+            reopen_filestream();
+            return;
+        }
         // Consistency check 3
         if ((inode.used_size & 0x80) == 0) {
             if (inode.used_size != 0 || inode.dir_parent != 0 || inode.start_block != 0
@@ -143,6 +150,7 @@ void fs_mount(const char *new_disk_name) {
                 return;
             }
         }
+        node_index++;
     }
     mount = true;
     super_block = new_block;

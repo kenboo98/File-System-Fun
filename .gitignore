@@ -3,5 +3,7 @@ cmake-build-debug/*
 .idea/
 *.txt
 disk0
+disk1
 fs
 sample_tests/*
+sample_tests_template
