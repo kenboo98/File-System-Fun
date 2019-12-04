@@ -541,6 +541,11 @@ void parse_file(string file_name) {
                 if (i != vector_size - 1) {
                     s.append(" ");
                 }
+
+            }
+            if(s.size() > 1024){
+                fprintf(stderr, ERROR_COMMAND, file_name.c_str(), line_num);
+                continue;
             }
             strcpy((char *) buffer, s.c_str());
             fs_buff(buffer);
@@ -557,5 +562,5 @@ int main(int argc, char **argv) {
     parse_file(string(argv[1]));
     file_stream.close();
     delete[] buffer;
-    
+
 }
