@@ -556,6 +556,6 @@ void parse_file(string file_name) {
 int main(int argc, char **argv) {
     parse_file(string(argv[1]));
     file_stream.close();
-
-
+    delete[] buffer;
+    
 }
