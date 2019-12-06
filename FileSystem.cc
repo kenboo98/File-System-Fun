@@ -445,6 +445,9 @@ void parse_file(string file_name) {
     int line_num = 0;
     // TODO: verify correctness of input
     while (getline(input_file, line)) {
+        if(line.size() == 0){
+            continue;
+        }
         line_num++;
         istringstream ss(line);
         istream_iterator<string> begin(ss), end;
@@ -534,20 +537,11 @@ void parse_file(string file_name) {
                 continue;
             }
             uint8_t buffer[1024];
-            int vector_size = tokens.size();
-            string s;
-            for (int i = 1; i < vector_size; i++) {
-                s.append(tokens[i]);
-                if (i != vector_size - 1) {
-                    s.append(" ");
-                }
-
-            }
-            if(s.size() > 1024){
+            if(line.size()-2 > 1024){
                 fprintf(stderr, ERROR_COMMAND, file_name.c_str(), line_num);
                 continue;
             }
-            strcpy((char *) buffer, s.c_str());
+            strcpy((char *) buffer, line.c_str()+2);
             fs_buff(buffer);
         } else {
             fprintf(stderr, ERROR_COMMAND, file_name.c_str(), line_num);
