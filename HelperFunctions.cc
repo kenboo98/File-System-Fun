@@ -44,7 +44,6 @@ int free_contiguous_blocks(const char free_blocks[16], int block_size) {
  */
 bool get_ith_bit(const char free_blocks[16], int i){
     if(i >= 128 || i < 0){
-        fprintf(stderr, "Invalid index");
         return -1;
     }
     uint8_t index_mask = 0x80;
@@ -59,7 +58,6 @@ bool get_ith_bit(const char free_blocks[16], int i){
  */
 void set_ith_bit(char free_blocks[16], int i, bool val){
     if(i >= 128 || i < 0){
-        fprintf(stderr, "Invalid index");
         return;
     }
     uint8_t index_mask = 0x80;
